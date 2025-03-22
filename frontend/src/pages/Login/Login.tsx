@@ -1,11 +1,18 @@
 import { FC, useState } from "react"
 import { Button } from "../../components/ui/button"
+import { initiateGoogleAuth } from '../../services/api';
 
 const LoginPage: FC = () => {
     const [counter, setCounter] = useState<number>(0);
 
-    const onConnectGmail = () => {
-        setCounter(counter + 1);
+    const onConnectGmail = async () => {
+        try {
+            await initiateGoogleAuth();
+        } catch (error) {
+            // Show error to user
+            alert(error)
+            alert('Failed to start Google authentication');
+        }
     }
     const onConnectOutlook = () => {
         setCounter(counter + 10);

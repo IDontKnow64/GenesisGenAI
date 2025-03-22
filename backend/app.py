@@ -18,8 +18,27 @@ nltk.download('punkt_tab')
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'  # Use Redis in production
 app.secret_key = os.getenv("GOOGLE_API_KEY")
+
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow session cookies across origins
+app.config['SESSION_COOKIE_SECURE'] = False  # Needed for localhost
+app.config['SESSION_PERMANENT'] = True  # Keep session alive
+app.config['SESSION_USE_SIGNER'] = True  # Prevent session tampering
+
 Session(app)
-CORS(app)
+CORS(app, 
+    resources={
+    r"/auth/*": {
+        "origins": "http://localhost:5173",
+        "supports_credentials": True,
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    },
+    r"/api/*": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["GET"]
+    }
+})
+
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 app.register_blueprint(email_blueprint, url_prefix='/emails')
@@ -67,13 +86,19 @@ def detect_scam():
         response = co.chat(
             model=model,
             messages=[
+                    {  
+                        "role": "system",
+                        "content": "You respond with only either 'scam' or 'safe' for the given email"
+                    },
                     {
                     "role": "user",
-                    "content": 'Identify if this email is a scam. If so, say "scam"\n\n'+email_content,
+                    "content": email_content,
                     }
                 ],
             temperature = temperature
         )
+
+        #print (response.message.content[0].text)
 
         if ("Verdict: Scam" in response.message.content[0].text):
             result = "scam"
@@ -101,24 +126,55 @@ def detect_scam():
             ).embeddings.float
 
             scores = np.dot(query_emb, np.transpose(doc_emb))[0]
+            scores_max = scores.max()
+            scores_norm = (scores) / (scores_max)
             # Sort and filter documents based on scores
             top_n = 5
             top_doc_idxs = np.argsort(-scores)[:top_n]
 
-            result += "\n"
+            top_docs = "\n"
             
             for idx, docs_idx in enumerate(top_doc_idxs):
-                result += ("Rank: " + (idx+1) + "Document: " + documents[docs_idx] + "Rank: " + scores[docs_idx] + "\n")
+                print(f"Rank: {idx+1}")
+                print(f"Document: {documents[docs_idx]}\n")
+                print(f"Score: {scores_norm[docs_idx]}\n")
+                top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
 
+            response = co.chat(
+            model="command-a-03-2025",
+            messages=[
+                    {  
+                        "role": "system",
+                        "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"
+                    },
+                    {
+                    "role": "user",
+                    "content": email_content+top_docs,
+                    }
+                ],
+            temperature = 0.1
+            )
+
+            #print (response.message.content[0].text)
+            raw_reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
+            reasons = [reason.strip() for reason in raw_reasons]
         else:
             result = "safe"
-
-        print (result)
+            top_docs = "N/A"
+            reasons = "N/A"
+            scores_norm = [0]
+        
+        print(result)
 
         return jsonify({
-            "text": result,
-            "model": model
+            "result": result,
+            "text": top_docs,
+            "reason": reasons,
+            "model": model,
+            "scores": scores_norm
         })
+
+    
      
      except Exception as e:
         return jsonify({"error": str(e)}), 500

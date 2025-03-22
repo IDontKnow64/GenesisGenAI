@@ -1,6 +1,8 @@
 import os
 from google_auth_oauthlib.flow import Flow
 from flask import redirect, session, request, Blueprint, jsonify
+import secrets
+
 
 client_config = {
     "web": {
@@ -12,34 +14,79 @@ client_config = {
     }
 }
 
-flow = Flow.from_client_config(
-    client_config=client_config,
-    scopes=['https://www.googleapis.com/auth/gmail.readonly'],
-    redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
-)
-
+def get_flow():
+    return Flow.from_client_config(
+        client_config=client_config,
+        scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+        redirect_uri=os.getenv("GOOGLE_REDIRECT_URI")
+    )
 auth_blueprint = Blueprint('auth', __name__)
+
+
 
 @auth_blueprint.route('/login')
 def login():
     # Handle login logic
-    authorization_url, state = flow.authorization_url(
-        access_type='offline',
-        prompt='consent'  # Force refresh token
-    )
+    flow = get_flow()
+
+    print(f"V1 = {session.get('oauth_state') = }")
+    # Generate and store state FIRST
+    session.clear()
+    print(f"V2 = {session.get('oauth_state') = }")
+    state = secrets.token_urlsafe(32)
     session['oauth_state'] = state
-    print(f"User Logging in")
+    session.permanent = True  # Required for server-side sessions
+    
+    # Force session save before redirect
+    session.modified = True
+    session.sid  # Access session ID to trigger save
+
+    authorization_url = flow.authorization_url(
+        state=state,
+        # access_type='offline',
+        # prompt='consent'  # Force refresh token
+    )[0]
+
+    print(f'''
+    [LOGIN] New State Generated:
+    - Session ID: {session.sid}
+    - State: {state}
+    - Authorization URL: {authorization_url}
+    ''')
+
+    print(f"V3 = {session.get('oauth_state') = }")
+
+    print(f"[LOGIN] Before Redirect - Stored State: {session.get('oauth_state')}, Session ID: {session.sid if hasattr(session, 'sid') else 'N/A'}")
+    # print(f"User Logging in\nReturning: {authorization_url}")
     return redirect(authorization_url)
 
 @auth_blueprint.route('/callback')
 def callback():
-    flow.fetch_token(authorization_response=request.url)
+    flow = get_flow()
+
+    stored_state = session.get('oauth_state')
+    request_state = request.args.get('state')
+    print(f"[CALLBACK] Session Before State Check: {session.items()}")  
+    # Log state comparison
+    print(f'''
+    [CALLBACK] State Check:
+    - Session ID: {session.sid}
+    - Stored State: {stored_state}
+    - Received State: {request_state}
+    - Match: {stored_state == request_state}
+    ''')
+
     
-    # Verify state matches
-    if session['oauth_state'] != request.args.get('state'):
-        return f"State mismatch {session['oauth_state']} != {request.args.get('state')}", 403
-    
+    if not stored_state or stored_state != request_state:
+        print(f'''
+            State Mismatch!
+            Session ID: {session.sid}
+            Stored: {stored_state}
+            Received: {request_state}
+        ''')
+
     # Get credentials
+    flow.fetch_token(authorization_response=request.url)
     credentials = flow.credentials
     
     # Store credentials in DB (example using simple session)
