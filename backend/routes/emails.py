@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 from flask import session
 from base64 import urlsafe_b64decode
 import re
-
+#from main import checkSpam, sortFolders, createSummary
 
 def get_gmail_service():
     """Authenticate and return Gmail service object."""
@@ -150,6 +150,10 @@ def get_message(message_id):
 def check():
     emails = fetch_emails(10) # Change parameter to fetch more emails
 
+    #checkSpam()
+    #sortFolders()
+    #createSummary()
+
     #Clean email format for AI formatting
-    
+
     return emails
