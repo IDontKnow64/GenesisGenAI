@@ -21,23 +21,30 @@ if __name__ == "__main__":
 
     co = cohere.ClientV2(api_key)
 
+    # Universal naming scheme
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, "email_test.txt")
     with open("email_test.txt","r", encoding='utf-8') as file:
             email_content = file.read()
 
     response = co.chat(
         model="command-a-03-2025",
         messages=[
+                {  
+                    "role": "system",
+                    "content": "You respond with only either 'scam' or 'safe' for the given email"
+                },
                 {
                 "role": "user",
-                "content": 'Identify if this email is a scam. If so, say "scam"\n\n'+email_content,
+                "content": email_content,
                 }
             ],
-        temperature = 0.1
+        temperature = 0.0
     )
 
-    print (response.message)
+    print (response.message.content[0].text)
 
-    if ("Verdict: Scam" in response.message.content[0].text):
+    if (response.message.content[0].text == "scam"):
         lines = email_content.split('\n')
         processed_lines = [add_punctuation(line) for line in lines]
         processed_email_content = '\n'.join(processed_lines)
@@ -60,20 +67,39 @@ if __name__ == "__main__":
             input_type="search_query",
             embedding_types=["float"],
         ).embeddings.float
-        
-        # response = co.chat(
-        #     model="command-r-plus-08-2024",
-        #     messages=[{"role": "user", "content": "hello world!"}],
-        # )
 
         scores = np.dot(query_emb, np.transpose(doc_emb))[0]
+        scores_max = scores.max()
+        scores_norm = (scores) / (scores_max)
         # Sort and filter documents based on scores
         top_n = 5
         top_doc_idxs = np.argsort(-scores)[:top_n]
+
+        top_docs = "\n"
         
         for idx, docs_idx in enumerate(top_doc_idxs):
             print(f"Rank: {idx+1}")
             print(f"Document: {documents[docs_idx]}\n")
+            print(f"Score: {scores_norm[docs_idx]}\n")
+            top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
 
+        response = co.chat(
+        model="command-a-03-2025",
+        messages=[
+                {  
+                    "role": "system",
+                    "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"
+                },
+                {
+                "role": "user",
+                "content": email_content+top_docs,
+                }
+            ],
+        temperature = 0.1
+        )
+
+        #print (response.message.content[0].text)
+        reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
+        cleaned_reasons = [reason.strip() for reason in reasons]
     else:
         print("Safe")

@@ -11,6 +11,7 @@ If not scam, collect into folders
 While checking emails create a summary
 If any urgent issue, create a notifications system
 When reading email, ask for a summary, whether it is a scam, and what folder it would go into
+Add feature where users can choose how many emails they want to check
 
 Pages Needed:
     - Login, use OAuth
