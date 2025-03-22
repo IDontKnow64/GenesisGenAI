@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 
 import { Mail } from "@/components/mail";
+import { MobileMail } from "@/components/MobileMail";
 import { accounts, mails } from "@/test/data";
 
-export default function MailPage() {
+const MailPage = () => {
   const [defaultLayout, setDefaultLayout] = useState();
   const [defaultCollapsed, setDefaultCollapsed] = useState();
 
@@ -17,24 +18,17 @@ export default function MailPage() {
 
   return (
     <>
-      <div className="md:hidden">
-        <img
-          src="/examples/mail-dark.png"
-          width={1280}
-          height={727}
-          alt="Mail"
-          className="hidden dark:block"
-        />
-        <img
-          src="/examples/mail-light.png"
-          width={1280}
-          height={727}
-          alt="Mail"
-          className="block dark:hidden"
-        />
-      </div>
       <div className="hidden flex-col md:flex">
         <Mail
+          accounts={accounts}
+          mails={mails}
+          defaultLayout={defaultLayout}
+          defaultCollapsed={defaultCollapsed}
+          navCollapsedSize={4}
+        />
+      </div>
+      <div className="flex flex-col md:hidden">
+        <MobileMail
           accounts={accounts}
           mails={mails}
           defaultLayout={defaultLayout}
@@ -45,3 +39,5 @@ export default function MailPage() {
     </>
   );
 }
+
+export default MailPage;
