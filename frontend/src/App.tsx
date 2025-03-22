@@ -1,6 +1,7 @@
 // src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/Home/Home.tsx'
+import Page from './pages/Home/page.tsx'
 import LoginPage from './pages/Login/Login.tsx'
 
 // Define route configuration type
@@ -10,7 +11,7 @@ type RouteConfig = {
 };
 
 const routes: RouteConfig[] = [
-  { path: '/', component: HomePage },
+  { path: '/', component: Page },
   { path: '/login', component: LoginPage },
   // { path: '/dashboard', component: Dashboard },
   // { path: '*', component: NotFound }
