@@ -1,18 +1,31 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
-import { Button } from './components/ui/button'
+// src/App.tsx
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import HomePage from './pages/Home/Home.tsx'
+import LoginPage from './pages/Login/Login.tsx'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Define route configuration type
+type RouteConfig = {
+  path: string;
+  component: React.ComponentType;
+};
 
+const routes: RouteConfig[] = [
+  { path: '/', component: HomePage },
+  { path: '/login', component: LoginPage },
+  // { path: '/dashboard', component: Dashboard },
+  // { path: '*', component: NotFound }
+];
+
+const App = () => {
   return (
-    <div className="flex-col items-center">
-      <Button onClick={() => setCount((count) => count + 1)}>Test</Button>
-      <div className="text-2xl">Count is { count }</div>
-    </div>
-  )
-}
+    <Router>
+      <Routes>
+        {routes.map(({ path, component: Component }) => (
+          <Route key={path} path={path} element={<Component />} />
+        ))}
+      </Routes>
+    </Router>
+  );
+};
 
-export default App
+export default App;
