@@ -1,5 +1,6 @@
-# API key
-API_KEY.py
+flask_session/
+node_modules/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
