@@ -32,6 +32,14 @@ cd frontend
 npm run dev
 ```
 
+### Build
+```
+cd frontend
+npm run build
+```
+Then go to `chrome://extensions/` enable ‘Developer mode’ and ‘Load unpacked’ by selecting the build directory that was just created!
+
+
 ### Load Chrome Extension
 Open Google Chrome
 Go to chrome://extensions/
