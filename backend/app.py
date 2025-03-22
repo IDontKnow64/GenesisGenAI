@@ -1,25 +1,17 @@
 from flask import Flask
 from flask_cors import CORS
-import os
-import cohere
-from dotenv import load_dotenv
-
-"""
-load_dotenv()
-api_key = os.getenv("CO_API_KEY")
-    
-co = cohere.ClientV2(api_key)
-    
-response = co.chat(
-        model="command-r-plus-08-2024",
-        messages=[{"role": "user", "content": "hello world!"}],
-)
-    
-message_response = response.message.content[0].text
-print(message_response)"""
+from routes.auth import auth_blueprint
+from routes.emails import email_blueprint
 
 app = Flask(__name__)
 CORS(app)
+
+
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+app.register_blueprint(email_blueprint, url_prefix='/emails')
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 @app.route('/')
 def home():
