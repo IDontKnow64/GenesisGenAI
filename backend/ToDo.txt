@@ -1,0 +1,155 @@
+
+Home 
+Authentication/Login - OAuth or SQLite3
+Sign Up Page
+Set Up Registrations Page
+Call to API to sign into gmail
+Call to API to read emails, create a button to scan current inbox
+Set up folders
+Use Cohere API to check for scam
+If not scam, collect into folders
+While checking emails create a summary
+If any urgent issue, create a notifications system
+When reading email, ask for a summary, whether it is a scam, and what folder it would go into
+
+Pages Needed:
+    - Login, use OAuth
+    - Signup, use OAuth
+    - Home Page
+        - Register emails
+        - Notifications for display
+        - Check summary
+
+_________________________________________________________________________________
+
+Use Google Mail or GMail API for gmail:
+from googleapiclient.discovery import build
+
+def move_email_to_folder(service, email_id, label_id):
+    service.users().messages().modify(
+        userId='me',
+        id=email_id,
+        body={'addLabelIds': [label_id], 'removeLabelIds': ['INBOX']}
+    ).execute()
+
+
+
+Authentication: 
+import os
+import pickle
+import google.auth
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from googleapiclient.discovery import build
+
+# OAuth 2.0 Scopes (Modify as needed)
+SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
+
+def authenticate_gmail():
+    creds = None
+    # Load token if it exists
+    if os.path.exists("token.pkl"):
+        with open("token.pkl", "rb") as token:
+            creds = pickle.load(token)
+
+    # Refresh token if expired, or get new one
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+            creds = flow.run_local_server(port=8080)
+
+        # Save the credentials for later use
+        with open("token.pkl", "wb") as token:
+            pickle.dump(creds, token)
+
+    return build("gmail", "v1", credentials=creds)
+
+# Example: Get Gmail Service
+service = authenticate_gmail()
+print("✅ Gmail API Authenticated!")
+
+_________________________________________________________________________________
+
+Use Outlook / Office 365 API for Outlook:
+import requests
+
+def move_email(access_token, message_id, folder_id):
+    url = f'https://graph.microsoft.com/v1.0/me/messages/{message_id}/move'
+    headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+    data = {'destinationId': folder_id}
+    response = requests.post(url, headers=headers, json=data)
+    return response.json()
+
+
+
+
+Authentication:
+import os
+import requests
+from flask import Flask, redirect, request, session
+
+# Microsoft App Credentials
+CLIENT_ID = "your-client-id"
+CLIENT_SECRET = "your-client-secret"
+REDIRECT_URI = "http://localhost:5000/getToken"
+AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+SCOPES = "https://graph.microsoft.com/Mail.ReadWrite offline_access"
+
+app = Flask(__name__)
+app.secret_key = "your_secret_key"
+
+@app.route("/")
+def login():
+    auth_request_url = f"{AUTH_URL}?client_id={CLIENT_ID}&response_type=code&redirect_uri={REDIRECT_URI}&scope={SCOPES}"
+    return redirect(auth_request_url)
+
+@app.route("/getToken")
+def get_token():
+    code = request.args.get("code")
+    token_data = {
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI,
+        "code": code,
+        "grant_type": "authorization_code",
+    }
+    token_response = requests.post(TOKEN_URL, data=token_data)
+    session["token"] = token_response.json().get("access_token")
+    return "✅ Outlook API Authenticated!"
+
+if __name__ == "__main__":
+    app.run(port=5000)
+
+_________________________________________________________________________________
+
+Use IMAP for other email providers:
+import imaplib
+
+mail = imaplib.IMAP4_SSL('imap.example.com')
+mail.login('your_email@example.com', 'your_password')
+
+mail.select('INBOX')  # Select inbox
+result, data = mail.search(None, 'ALL')  # Get all emails
+email_id = data[0].split()[0]  # Get first email
+
+mail.store(email_id, '+X-GM-LABELS', 'YourTargetFolder')  # Move email
+mail.logout()
+
+_________________________________________________________________________________
+
+Get ENV Variable and Access Cohere API for AI usage:
+load_dotenv()
+api_key = os.getenv("CO_API_KEY")
+    
+co = cohere.ClientV2(api_key)
+    
+response = co.chat(
+        model="command-r-plus-08-2024",
+        messages=[{"role": "user", "content": "hello world!"}],
+)
+    
+message_response = response.message.content[0].text
+print(message_response)
