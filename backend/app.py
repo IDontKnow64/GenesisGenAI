@@ -10,8 +10,27 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 app = Flask(__name__)
 app.config['SESSION_TYPE'] = 'filesystem'  # Use Redis in production
 app.secret_key = os.getenv("GOOGLE_API_KEY")
+
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow session cookies across origins
+app.config['SESSION_COOKIE_SECURE'] = False  # Needed for localhost
+app.config['SESSION_PERMANENT'] = True  # Keep session alive
+app.config['SESSION_USE_SIGNER'] = True  # Prevent session tampering
+
 Session(app)
-CORS(app)
+CORS(app, 
+    resources={
+    r"/auth/*": {
+        "origins": "http://localhost:5173",
+        "supports_credentials": True,
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "allow_headers": ["Content-Type", "Authorization"]
+    },
+    r"/api/*": {
+        "origins": ["http://localhost:5173"],
+        "methods": ["GET"]
+    }
+})
+
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 app.register_blueprint(email_blueprint, url_prefix='/emails')

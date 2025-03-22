@@ -40,8 +40,13 @@ export default defineConfig({
     },
   },
   server: {
+    hmr: false,
     proxy: {
-      '/api': 'http://127.0.0.1:5000',
-    },
+      '/api': {                          // Prefix for frontend requests
+        target: 'http://127.0.0.1:5000', // Your backend URL
+        changeOrigin: true,              // Spoof "Origin" header
+        rewrite: (path) => path.replace(/^\/api/, '') // Remove /api prefix
+      }
+    }
   },
 });
