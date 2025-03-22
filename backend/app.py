@@ -64,9 +64,6 @@ def detect_scam():
 
         co = cohere.ClientV2(api_key)
 
-        with open("email_test.txt","r", encoding='utf-8') as file:
-                email_content = file.read()
-
         response = co.chat(
             model=model,
             messages=[
