@@ -1,17 +1,15 @@
 import os
-import cohere
+import backend.main as main
 from dotenv import load_dotenv
 
 load_dotenv()
 
 if __name__ == "__main__":
-
     api_key = os.getenv("CO_API_KEY")
-    
-    co = cohere.ClientV2(api_key)
+    co = main.ClientV2(api_key)
     
     response = co.chat(
-        model="command-r-plus-08-2024",
+        model="command-a-03-2025", 
         messages=[{"role": "user", "content": "hello world!"}],
     )
     
