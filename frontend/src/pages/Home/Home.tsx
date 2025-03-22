@@ -11,6 +11,10 @@ const HomePage: FC = () => {
         navigate("/login");
     }
 
+    const onNavigateMail = () => {
+        navigate("/mail")
+    }
+
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
             <h1 className="text-5xl font-bold text-gray-800 mb-8 animate-fade-in">
@@ -18,11 +22,18 @@ const HomePage: FC = () => {
             </h1>
             
             <div className="flex flex-col items-center gap-6">
-                <Button onClick={onConnectEmail} className="px-8 py-3 text-white 
-                                transition-colors duration-300
-                                shadow-lg transform hover:scale-105">
-                    Connect email
-                </Button>
+                <div className="flex flex-row items-center gap-4">
+                    <Button onClick={onConnectEmail} className="px-8 py-3 text-white 
+                                    transition-colors duration-300
+                                    shadow-lg transform hover:scale-105">
+                        Connect email
+                    </Button>
+                    <Button onClick={onNavigateMail} className="px-8 py-3 text-white 
+                                    transition-colors duration-300
+                                    shadow-lg transform hover:scale-105">
+                        Go to Mail
+                    </Button>
+                </div>
                 
                 <div className="text-3xl font-mono text-gray-600 mt-4">
                     Counter: {counter}
