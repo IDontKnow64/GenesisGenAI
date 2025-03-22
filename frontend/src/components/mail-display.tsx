@@ -58,15 +58,6 @@ export function MailDisplay({ mail }: MailDisplayProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" disabled={!mail}>
-                <Archive className="h-4 w-4" />
-                <span className="sr-only">Archive</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Archive</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!mail}>
                 <ArchiveX className="h-4 w-4" />
                 <span className="sr-only">Move to junk</span>
               </Button>
@@ -143,35 +134,7 @@ export function MailDisplay({ mail }: MailDisplayProps) {
             <TooltipContent>Snooze</TooltipContent>
           </Tooltip>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!mail}>
-                <Reply className="h-4 w-4" />
-                <span className="sr-only">Reply</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Reply</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!mail}>
-                <ReplyAll className="h-4 w-4" />
-                <span className="sr-only">Reply all</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Reply all</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" disabled={!mail}>
-                <Forward className="h-4 w-4" />
-                <span className="sr-only">Forward</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Forward</TooltipContent>
-          </Tooltip>
-        </div>
+        <div className="ml-auto flex items-center gap-2"/>
         <Separator orientation="vertical" className="mx-2 h-6" />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
