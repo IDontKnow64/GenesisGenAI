@@ -7,6 +7,7 @@ import google.auth
 from googleapiclient.discovery import build
 from flask import session
 from base64 import urlsafe_b64decode
+import requests
 import re
 #from main import checkSpam, sortFolders, createSummary
 
@@ -69,6 +70,19 @@ def extract_email_details(message):
         "Body": body.strip()  # Limit body preview to 500 chars
     }
 
+def get_user_email():
+    """Fetch the user's email using the Gmail API service."""
+    service = get_gmail_service()  # Get the authenticated service
+    if not service:
+        return None  # No service available, not authenticated
+
+    try:
+        # Fetch user profile using 'me' (authenticated user)
+        profile = service.users().getProfile(userId='me').execute()
+        return profile.get('emailAddress')  # Return email address
+    except Exception as e:
+        print(f"Error fetching email: {str(e)}")
+        return None
 
 def fetch_emails(max):
     """Fetch the latest 10 emails from the user's Gmail inbox."""
@@ -95,7 +109,6 @@ def fetch_emails(max):
 
     except Exception as e:
         return f"❌ Error fetching emails: {str(e)}"
-
 
 email_blueprint = Blueprint('email', __name__)
 
@@ -146,6 +159,16 @@ def get_message(message_id):
             'details': str(e)
         }), 500
     
+@email_blueprint.route('/setfolders')
+def get_email():
+    email = get_user_email()  # Fetch the email address using Gmail API
+    print(email)
+    if email:
+        return jsonify({'email': email})  # Return the email in a JSON response
+    else:
+        return jsonify({'error': 'Failed to retrieve email'}), 400
+
+
 @email_blueprint.route('/check')
 def check():
     emails = fetch_emails(10) # Change parameter to fetch more emails
