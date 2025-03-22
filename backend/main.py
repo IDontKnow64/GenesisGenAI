@@ -21,7 +21,11 @@ if __name__ == "__main__":
 
     co = cohere.ClientV2(api_key)
 
-    with open("email_test.txt","r", encoding='utf-8') as file:
+    # Universal naming scheme
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(script_dir, "email_test.txt")
+
+    with open(file_path,"r", encoding='utf-8') as file:
             email_content = file.read()
 
     response = co.chat(
@@ -77,4 +81,3 @@ if __name__ == "__main__":
 
     else:
         print("Safe")
-        
