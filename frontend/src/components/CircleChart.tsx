@@ -33,12 +33,11 @@ const chartConfig = {
 } satisfies ChartConfig
 
 const CircleChart = ({msg_id, description, type, reasons, score}) => {
-  const startData = [
-    { level: "safety", score: 0, fill: "green" },
-    { level: "danger", score: 0, fill: "red" },
-    { level: "unknown", score: 100, fill: "gray" },
+  const chartData = [
+    { level: "safety", score: score, fill: "green" },
+    { level: "danger", score: 100-score, fill: "red" },
+    { level: "unknown", score: 0, fill: "gray" },
   ]
-  const [data, setData] = useState(startData)
 
   return (
     <Card className="flex flex-col">
