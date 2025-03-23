@@ -18,7 +18,7 @@ const HomePage: FC = () => {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
             <h1 className="text-5xl font-bold text-gray-800 mb-8 animate-fade-in">
-                ArmourInbox
+                InboxArmor
             </h1>
             <h3 className="text-2xl text-gray-600 mb-8 animate-fade-in">
                 AI-Powered Email Protection Against Scams & Phishing
