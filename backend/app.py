@@ -88,7 +88,7 @@ def detect_scam():
             messages=[
                     {  
                         "role": "system",
-                        "content": "You respond with only either 'scam' or 'safe' for the given email"
+                        "content": "You respond with only either 'scam' or 'safe' for the given email and then you respond with only a number that gives a scam rating from 0 (safe) to 100 (guaranteened scam)"
                     },
                     {
                     "role": "user",
@@ -97,10 +97,10 @@ def detect_scam():
                 ],
             temperature = temperature
         )
-
         #print (response.message.content[0].text)
+        scam_score = response.message.content[0].text.split()[1]
 
-        if ("Verdict: Scam" in response.message.content[0].text):
+        if (response.message.content[0].text.split()[0]=="scam"):
             result = "scam"
             lines = email_content.split('\n')
             processed_lines = [add_punctuation(line) for line in lines]
@@ -168,6 +168,7 @@ def detect_scam():
 
         return jsonify({
             "result": result,
+            "scam_score": scam_score,
             "text": top_docs,
             "reason": reasons,
             "model": model,
