@@ -1,52 +1,36 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  AlertCircle,
-  Archive,
-  ArchiveX,
-  File,
-  Inbox,
-  MessagesSquare,
-  Search,
-  Send,
-  ShoppingCart,
-  Trash2,
-  Users2,
-} from "lucide-react"
-
-import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
+import * as React from "react";
+import { useState } from "react";
+import * as lu from "react-icons/lu";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from "@/components/ui/resizable"
-import { Separator } from "@/components/ui/separator"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { AccountSwitcher } from "@/components/account-switcher"
-import { MailDisplay } from "@/components/mail-display"
-import { MailList } from "@/components/mail-list"
-import { Nav } from "@/components/nav"
-import { type Mail } from "@/test/data"
-import { useMail } from "@/test/use-mail"
+} from "@/components/ui/resizable";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { MailDisplay } from "@/components/mail-display";
+import { MailList } from "@/components/mail-list";
+import { Nav } from "@/components/nav";
+import { type Mail } from "@/test/data";
+import { type LucideIcon, Search } from "lucide-react";
+import { useMail } from "@/test/use-mail";
+import { Button } from "@/components/ui/button";
 
 interface MailProps {
   accounts: {
-    label: string
-    email: string
-    icon: React.ReactNode
-  }[]
-  mails: Mail[]
-  defaultLayout: number[] | undefined
-  defaultCollapsed?: boolean
-  navCollapsedSize: number
+    label: string;
+    email: string;
+    icon: React.ReactNode;
+  }[];
+  mails: Mail[];
+  defaultLayout: number[] | undefined;
+  defaultCollapsed?: boolean;
+  navCollapsedSize: number;
 }
 
 export function Mail({
@@ -56,8 +40,54 @@ export function Mail({
   defaultCollapsed = false,
   navCollapsedSize,
 }: MailProps) {
-  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed)
-  const [mail] = useMail()
+  const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
+  const [mail] = useMail();
+  const [folders, setFolders] = useState([
+    {
+      title: "Inbox",
+      label: "128",
+      icon: lu.LuInbox as LucideIcon,
+      category: "Work",
+      variant: "default",
+    },
+    {
+      title: "Junk",
+      label: "23",
+      icon: lu.LuArchiveX as LucideIcon,
+      category: "All",
+      variant: "ghost",
+    },
+    {
+      title: "Trash",
+      label: "",
+      icon: lu.LuTrash2 as LucideIcon,
+      category: "All",
+      variant: "ghost",
+    },
+  ]);
+  const [categories, setCategories] = useState([
+    "All",
+    "Work",
+  ]);
+
+  const moveUp = (category: string) => {
+    const currentIndex = categories.findIndex((cat) => cat === category);
+    if (currentIndex > 0) {
+      const temp = categories[currentIndex];
+      categories[currentIndex] = categories[currentIndex - 1];
+      categories[currentIndex - 1] = temp;
+      setFolders([...folders]);
+    }
+  };
+  const moveDown = (category: string) => {
+    const currentIndex = categories.findIndex((cat) => cat === category);
+    if (currentIndex < categories.length - 1) {
+      const temp = categories[currentIndex];
+      categories[currentIndex] = categories[currentIndex + 1];
+      categories[currentIndex + 1] = temp;
+      setFolders([...folders]);
+    }
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -66,7 +96,7 @@ export function Mail({
         onLayout={(sizes: number[]) => {
           document.cookie = `react-resizable-panels:layout:mail=${JSON.stringify(
             sizes
-          )}`
+          )}`;
         }}
         className="h-full max-h-[800px] items-stretch"
       >
@@ -77,56 +107,50 @@ export function Mail({
           minSize={15}
           maxSize={20}
           onCollapse={() => {
-            setIsCollapsed(true)
+            setIsCollapsed(true);
             document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(
               true
-            )}`
+            )}`;
           }}
           onResize={() => {
-            setIsCollapsed(false)
+            setIsCollapsed(false);
             document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(
               false
-            )}`
+            )}`;
           }}
           className={cn(
             isCollapsed &&
               "min-w-[50px] transition-all duration-300 ease-in-out"
           )}
         >
-          <div
-            className={cn(
-              "flex h-[52px] items-center justify-center",
-              isCollapsed ? "h-[52px]" : "px-2"
-            )}
-          >
-            <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
-          </div>
-          <Separator />
-          <Nav
-            isCollapsed={isCollapsed}
-            links={[
-              {
-                title: "Inbox",
-                label: "128",
-                icon: Inbox,
-                variant: "default",
-              },  
-              {
-                title: "Junk",
-                label: "23",
-                icon: ArchiveX,
-                variant: "ghost",
-              },
-              {
-                title: "Trash",
-                label: "",
-                icon: Trash2,
-                variant: "ghost",
-              },
-            ]}
-          />
-          <Separator />
-          <Nav
+          <div className="pt-[28px]"/>
+          {categories.map((category) => (
+            <div className="category-item">
+              <span className="pr-3 flex justify-between">
+                <text className="pl-5 category-title">{category}</text>
+                <span className="flex gap-0">
+                <Button onClick={() => moveDown(category)} className="size-1 bg-white shadow-none hover:bg-gray-100">
+                  <lu.LuArrowDown color="black"/>
+                </Button>
+                <Button onClick={() => moveUp(category)} className="size-1 bg-white shadow-none hover:bg-gray-100">
+                <lu.LuArrowUp color="black"/>
+                </Button>
+                </span>
+              </span>
+              <Separator />
+              <Nav
+                isCollapsed={isCollapsed}
+                links={folders.map((folder) => ({
+                  title: folder.title,
+                  label: folder.label,
+                  icon: folder.icon,
+                  variant: folder.variant as "default" | "ghost",
+                  category: folder.category,
+                })).filter((folder) => folder.category === category)}
+              />
+            </div>
+          ))}
+          {/* <Nav
             isCollapsed={isCollapsed}
             links={[
               {
@@ -136,7 +160,7 @@ export function Mail({
                 variant: "ghost",
               },
             ]}
-          />
+          /> */}
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
@@ -183,5 +207,5 @@ export function Mail({
         </ResizablePanel>
       </ResizablePanelGroup>
     </TooltipProvider>
-  )
+  );
 }
