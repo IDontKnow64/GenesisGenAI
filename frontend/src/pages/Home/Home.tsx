@@ -18,10 +18,16 @@ const HomePage: FC = () => {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
             <h1 className="text-5xl font-bold text-gray-800 mb-8 animate-fade-in">
-                Welcome to the Homepage
+                ArmourInbox
             </h1>
+            <h3 className="text-2xl text-gray-600 mb-8 animate-fade-in">
+                AI-Powered Email Protection Against Scams & Phishing
+            </h3>
+            <div className="w-[60vw] text-center text-gray-800">
+                <p>ArmourInbox is a security-focused email management application that automatically scans your inbox for potential scams, phishing attempts, and suspicious content using advanced AI detection. By connecting to your email account (currently supporting Gmail), it analyzes incoming messages in real-time, flagging high-risk emails based on linguistic patterns, malicious links, and social engineering tactics.</p>
+            </div>
             
-            <div className="flex flex-col items-center gap-6">
+            <div className="mt-8 flex flex-col items-center gap-6">
                 <div className="flex flex-row items-center gap-4">
                     <Button onClick={onConnectEmail} className="px-8 py-3 text-white 
                                     transition-colors duration-300
@@ -33,10 +39,6 @@ const HomePage: FC = () => {
                                     shadow-lg transform hover:scale-105">
                         Go to Mail
                     </Button>
-                </div>
-                
-                <div className="text-3xl font-mono text-gray-600 mt-4">
-                    Counter: {counter}
                 </div>
             </div>
         </div>

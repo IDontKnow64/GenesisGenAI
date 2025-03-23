@@ -98,7 +98,7 @@ def fetch_emails(max):
         for msg in messages:
             msg_id = msg["id"]
             message = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
-            email_details = extract_email_details(message, id)
+            email_details = extract_email_details(message, msg_id)
             email_list.append(email_details)
 
         return email_list
@@ -124,6 +124,16 @@ def get_email():
     except Exception as e:
         print(f"Error fetching email: {str(e)}")
         return jsonify({"error": "Failed to fetch email", "details": str(e)}), 500
+
+@email_blueprint.route('/raw', methods=["GET"])
+def get_raw_email():
+    """Fetch the user's email using the Gmail API service."""
+    emails = fetch_emails(10)
+    if isinstance(emails, str):  # If fetch_emails() returned an error string
+        return jsonify({"error": emails}), 500
+
+    return jsonify(emails)  # Return results as JSON
+
 
 @email_blueprint.route('/creds', methods=["GET"])
 def get_user_creds():
