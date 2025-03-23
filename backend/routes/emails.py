@@ -255,7 +255,7 @@ def summary():
     results = []
 
     for email in emails:
-        summary = chs.generate_summary(email['Body'])  # Call the updated function
+        summary = chd.generate_summary(email['Body'])  # Call the updated function
         results.append({"email": email, "summary": summary})  
 
     return jsonify(results)  # Return results as JSON
