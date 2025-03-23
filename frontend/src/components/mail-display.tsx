@@ -44,8 +44,8 @@ import {
 } from "@/components/ui/tooltip"
 import { Mail } from "@/test/data"
 import CircleChart from "@/components/CircleChart"
-import { useState } from "react"
-
+import { useEffect, useState } from "react"
+import { emailService } from "@/services/api"
 interface MailDisplayProps {
   mail: Mail | null
 }
@@ -54,9 +54,20 @@ export function MailDisplay({ mail }: MailDisplayProps) {
   const [summaryText, setSummaryText] = useState("")
   const today = new Date()
 
-  const summerizeCurrent = async (message_id) => {
-    
+  const summerizeCurrent = async (message_id: string) => {
+    try {
+      const result = await emailService.summarizeEmail(message_id);
+      console.log('Email:', result.email);
+      console.log('Summary:', result.summary);
+      setSummaryText(result.summary);
+    } catch (error) {
+      console.log("Error summarizing")
+    }
   }
+
+  useEffect(() => {
+    setSummaryText("")
+  }, [mail])
 
   return (
     <div className="flex h-full flex-col">
@@ -86,10 +97,10 @@ export function MailDisplay({ mail }: MailDisplayProps) {
         <Tooltip>
             <TooltipTrigger asChild>
               <Button onClick={() => summerizeCurrent(mail?.id)} variant="outline" disabled={!mail}>
-                summarize {mail?.id}
+                Summarize!
               </Button>
             </TooltipTrigger>
-            <TooltipContent>summarize</TooltipContent>
+            <TooltipContent>Summarize</TooltipContent>
           </Tooltip>
         </div>
         <div className="ml-auto flex items-center gap-2"/>
@@ -125,43 +136,13 @@ export function MailDisplay({ mail }: MailDisplayProps) {
             )}
           </div>
           <Separator />
+          <CircleChart msg_id={mail.id} description={summaryText}/>
           <div className="whitespace-pre-wrap p-4 text-sm">
             {mail.text}
           </div>
           <Separator className="mt-auto" />
-          <CircleChart msg_id={mail.id} description={summaryText}/>
 
           </div>
-
-          <div className="shrink-0">
-          {/* <Separator className="mt-auto" />
-          <div className="p-4">
-            <form>
-              <div className="grid gap-4">
-                <Textarea
-                  className="p-4"
-                  placeholder={`Reply ${mail.name}...`}
-                />
-                <div className="flex items-center">
-                  <Label
-                    htmlFor="mute"
-                    className="flex items-center gap-2 text-xs font-normal"
-                  >
-                    <Switch id="mute" aria-label="Mute thread" /> Mute this
-                    thread
-                  </Label>
-                  <Button
-                    onClick={(e) => e.preventDefault()}
-                    size="sm"
-                    className="ml-auto"
-                  >
-                    Send
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </div> */}
-        </div>
         </div>
       ) : (
         <div className="p-8 text-center text-muted-foreground">

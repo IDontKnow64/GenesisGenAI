@@ -9,7 +9,6 @@ from base64 import urlsafe_b64decode
 from dotenv import load_dotenv
 from sql import *
 from utils import cohere_detection as chd
-from utils import cohere_summary as chs
 
 load_dotenv()
 nltk.download('punkt_tab')
