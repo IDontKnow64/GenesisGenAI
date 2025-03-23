@@ -174,8 +174,6 @@ def detect_scam():
             "scores": scores_norm
         })
 
-    
-     
      except Exception as e:
         return jsonify({"error": str(e)}), 500
      
