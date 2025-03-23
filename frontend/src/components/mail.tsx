@@ -101,7 +101,7 @@ export function Mail({
   };
 
   const addCategory = () => {
-    const newCategory = "New Category";
+    const newCategory = "Other";
     setCategories([...categories, newCategory]);
   };
 
@@ -173,8 +173,9 @@ export function Mail({
             </div>
           ))}
           </div>
-          <div className="px-2 pb-2 sticky bottom-0 bg-background">
-            <Button onClick={addFolder} variant={"secondary"} className= {`text-black  shadow-none hover:bg-gray-200 bottom-10 ${isCollapsed ? "size-9" : "w-full"}`}>{!isCollapsed ? "add folder" : <lu.LuPlus/>}</Button>
+          <div className="flex flex-col gap-2 px-2 pb-2 sticky bottom-0 bg-background ">
+            <Button onClick={addCategory} variant={"secondary"} className= {`text-black shadow-none hover:bg-gray-200 bottom-10 ${isCollapsed ? "size-9" : "w-full"}`}>{!isCollapsed ? "add category" : <lu.LuListPlus/>}</Button>
+            <Button onClick={addFolder} variant={"secondary"} className= {`text-black shadow-none hover:bg-gray-200 bottom-10 ${isCollapsed ? "size-9" : "w-full"}`}>{!isCollapsed ? "add folder" : <lu.LuBookPlus/>}</Button>
           </div>
         </ResizablePanel>
         <ResizableHandle withHandle />

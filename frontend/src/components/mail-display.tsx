@@ -75,82 +75,19 @@ export function MailDisplay({ mail }: MailDisplayProps) {
             <TooltipContent>Move to trash</TooltipContent>
           </Tooltip>
           <Separator orientation="vertical" className="mx-1 h-6" />
-          <Tooltip>
-            <Popover>
-              <PopoverTrigger asChild>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled={!mail}>
-                    <Clock className="h-4 w-4" />
-                    <span className="sr-only">Snooze</span>
-                  </Button>
-                </TooltipTrigger>
-              </PopoverTrigger>
-              <PopoverContent className="flex w-[535px] p-0">
-                <div className="flex flex-col gap-2 border-r px-2 py-4">
-                  <div className="px-4 text-sm font-medium">Snooze until</div>
-                  <div className="grid min-w-[250px] gap-1">
-                    <Button
-                      variant="ghost"
-                      className="justify-start font-normal"
-                    >
-                      Later today{" "}
-                      <span className="ml-auto text-muted-foreground">
-                        {format(addHours(today, 4), "E, h:m b")}
-                      </span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="justify-start font-normal"
-                    >
-                      Tomorrow
-                      <span className="ml-auto text-muted-foreground">
-                        {format(addDays(today, 1), "E, h:m b")}
-                      </span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="justify-start font-normal"
-                    >
-                      This weekend
-                      <span className="ml-auto text-muted-foreground">
-                        {format(nextSaturday(today), "E, h:m b")}
-                      </span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      className="justify-start font-normal"
-                    >
-                      Next week
-                      <span className="ml-auto text-muted-foreground">
-                        {format(addDays(today, 7), "E, h:m b")}
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-                <div className="p-2">
-                  <Calendar />
-                </div>
-              </PopoverContent>
-            </Popover>
-            <TooltipContent>Snooze</TooltipContent>
+        </div>
+        <div>
+        <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled={!mail}>
+                summarize
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>summarize</TooltipContent>
           </Tooltip>
         </div>
         <div className="ml-auto flex items-center gap-2"/>
         <Separator orientation="vertical" className="mx-2 h-6" />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" disabled={!mail}>
-              <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">More</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Mark as unread</DropdownMenuItem>
-            <DropdownMenuItem>Star thread</DropdownMenuItem>
-            <DropdownMenuItem>Add label</DropdownMenuItem>
-            <DropdownMenuItem>Mute thread</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       <Separator />
       {mail ? (
