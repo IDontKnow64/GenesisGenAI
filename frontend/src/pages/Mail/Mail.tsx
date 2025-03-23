@@ -11,31 +11,74 @@ const MailPage = () => {
   const [loading, setLoading] = useState(true);
   const [newMails, setMails] = useState([]);
 
+  const [backgroundLoading, setBackgroundLoading] = useState(false);
+
   useEffect(() => {
-    const fetchInitialState = async () => {
+    const fetchData = async () => {
       try {
-        // Load layout settings first
+        // Load layout settings
         const layout = localStorage.getItem("react-resizable-panels:layout:mail");
         const collapsed = localStorage.getItem("react-resizable-panels:collapsed");
         
         setDefaultLayout(layout ? JSON.parse(layout) : undefined);
         setDefaultCollapsed(collapsed ? JSON.parse(collapsed) : undefined);
 
-        // Then fetch emails
-        const response = await emailService.getRawEmails();
-        // setMails(response);
-        console.log(response);
-        setMails(response);
+        // Initial fast load
+        const initialEmails = await emailService.getRawEmails(5);
+        setMails(initialEmails);
+        setLoading(false);  // Hide main loading spinner
+
+        // Start background load
+        setBackgroundLoading(true);
+        const fullEmails = await emailService.getRawEmails(50);
+        setMails(fullEmails);
       } catch (error) {
-        console.error("Initialization error:", error);
+        console.error("Loading error:", error);
       } finally {
-        setLoading(false);
+        setBackgroundLoading(false);
       }
     };
-    
-    setMails(newMails);
-    fetchInitialState();
+
+    fetchData();
   }, []);
+  
+  // useEffect(() => {
+  //   const fetchInitialState = async () => {
+  //     try {
+  //       // Load layout settings first
+  //       const layout = localStorage.getItem("react-resizable-panels:layout:mail");
+  //       const collapsed = localStorage.getItem("react-resizable-panels:collapsed");
+        
+  //       setDefaultLayout(layout ? JSON.parse(layout) : undefined);
+  //       setDefaultCollapsed(collapsed ? JSON.parse(collapsed) : undefined);
+
+  //       // Then fetch emails
+  //       const response = await emailService.getRawEmails(5);
+  //       // setMails(response);
+  //       console.log(response)
+  //       setMails(response);
+  //     } catch (error) {
+  //       console.error("Initialization error:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   const fetchSecondState = async () => {
+  //       try {
+  //         const response = await emailService.getRawEmails(50);
+  //         // setMails(response);
+  //         console.log(response)
+  //         setMails(response);
+  //       } catch (error) {
+  //         console.error("Initialization error:", error);
+  //       }
+  //   }
+    
+  //   setMails(newMails);
+  //   fetchInitialState();
+  //   fetchSecondState();
+  // }, []);
 
   if (loading) {
     return (
@@ -47,7 +90,6 @@ const MailPage = () => {
 
   return (
     <>
-      done
       <div className="hidden flex-col md:flex">
         <Mail
           accounts={accounts}
