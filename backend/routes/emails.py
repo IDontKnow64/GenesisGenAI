@@ -139,7 +139,6 @@ def get_raw_email():
     if isinstance(emails, str):  # If fetch_emails() returned an error string
         return jsonify({"error": emails}), 500
 
-    results = []
     return jsonify(emails)  # Return results as JSON
 
 

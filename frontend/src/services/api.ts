@@ -82,5 +82,40 @@ export const emailService = {
       console.error('Failed to check emails for scams:', error);
       throw error;
     }
+  },
+
+  getRawEmails: async (maxEmails = 10) => {
+    try {
+      const response = await apiClient.get('/emails/raw', {
+        params: { max: maxEmails }
+      });
+      
+      // Transformation logic
+      const formattedEmails = response.data.map(email => {
+        // Extract name and email from "From" field using regex
+        const fromMatch = email.From.match(/(.*?)\s*<([^>]+)>/);
+        const [name, emailAddress] = fromMatch 
+          ? [fromMatch[1].trim(), fromMatch[2]]
+          : ['Unknown Sender', 'unknown@example.com'];
+
+        return {
+          id: email.id || crypto.randomUUID(), // Use existing ID or generate new
+          name: name,
+          email: emailAddress,
+          subject: email.Subject,
+          text: email.Body,
+          date: new Date(email['Date Received']).toISOString(),
+          read: false, // Default to unread
+          labels: [] // Initialize empty labels array
+        };
+      });
+
+      return formattedEmails;
+      console.log(response.data)
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch raw emails:', error);
+      throw error;
+    }
   }
 };
