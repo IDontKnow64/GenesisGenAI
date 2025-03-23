@@ -90,7 +90,8 @@ def detect_scam(email_content):
         for idx, docs_idx in enumerate(top_doc_idxs):
             rank = (f"Rank: {idx+1}")
             reasons = (f"Document: {documents[docs_idx]}\n")
-            score= (f"Score: {scores_norm[docs_idx]}\n")
+            originalScore = scores_norm[docs_idx]*100
+            score= (f"Score: {originalScore}.2f%\n")
             top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
 
         response = co.chat(
@@ -111,7 +112,7 @@ def detect_scam(email_content):
         #print (response.message.content[0].text)
         reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
         cleaned_reasons = [reason.strip() for reason in reasons]
-        return ["Scam", cleaned_reasons, score*100]
+        return ["Scam", cleaned_reasons, score]
     else:
         return ["Safe", "Reasons", 100] 
     
