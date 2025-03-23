@@ -26,7 +26,7 @@ interface MailDisplayProps {
 
 export function MailDisplay({ mail }: MailDisplayProps) {
   const [summaryText, setSummaryText] = useState("")
-  const [scoreText, setScore] = useState(null)
+  const [scoreText, setScore] = useState("")
   const [reasonsList, setReasons] = useState([""])
   const [typeText, setType] = useState("")
   const today = new Date()
@@ -61,9 +61,6 @@ export function MailDisplay({ mail }: MailDisplayProps) {
 
   useEffect(() => {
     setSummaryText("")
-    setScore(null)
-    setType("Unknown")
-    setReasons([""])
   }, [mail])
 
   return (
