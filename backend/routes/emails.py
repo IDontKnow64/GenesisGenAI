@@ -9,6 +9,7 @@ from base64 import urlsafe_b64decode
 from dotenv import load_dotenv
 from sql import *
 from utils import cohere_detection as chd
+from utils import cohere_summary as chs
 
 load_dotenv()
 nltk.download('punkt_tab')
@@ -92,7 +93,7 @@ def fetch_emails(max):
         messages = results.get("messages", [])
 
         if not messages:
-            return "📭 No emails found."
+            return " No emails found."
 
         email_list = []
         for msg in messages:
@@ -104,7 +105,7 @@ def fetch_emails(max):
         return email_list
 
     except Exception as e:
-        return f"❌ Error fetching emails: {str(e)}"
+        return f"Error fetching emails: {str(e)}"
 
 email_blueprint = Blueprint('emails', __name__)
 
@@ -227,5 +228,20 @@ def check():
     for email in emails:
         scam_result = chd.detect_scam(email['Body'])  # Call the updated function
         results.append({"email": email, "scam_status": scam_result[0], "confidence": scam_result[2]})  # Store both email and scam result
+
+    return jsonify(results)  # Return results as JSON
+
+@email_blueprint.route('/summary', methods=['GET'])
+def summary():
+    emails = fetch_emails(10)  # Fetch emails
+
+    if isinstance(emails, str):  # If fetch_emails() returned an error string
+        return jsonify({"error": emails}), 500
+
+    results = []
+
+    for email in emails:
+        summary = chs.generate_summary(email['Body'])  # Call the updated function
+        results.append({"email": email, "summary": summary})  
 
     return jsonify(results)  # Return results as JSON
