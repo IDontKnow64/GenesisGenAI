@@ -14,6 +14,8 @@ from utils import cohere_summary as chs
 load_dotenv()
 nltk.download('punkt_tab')
    
+api_key = os.getenv("CO_API_KEY")
+
 def get_gmail_service():
     """Authenticate and return Gmail service object."""
     credentials = session.get("google_credentials")
@@ -53,15 +55,6 @@ def extract_email_details(message, id):
                 break
             elif part.get("mimeType") == "text/html":
                 body = urlsafe_b64decode(part["body"]["data"]).decode("utf-8")
-
-    # Filter out long, random-looking URLs using regex
-    body = re.sub(r'https?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', '[URL Removed]', body)
-
-    # Filter long random links (optional additional step)
-    body = re.sub(r'http[s]?://(?:[A-Za-z0-9-]+\.)+[A-Za-z0-9]{2,6}/[A-Za-z0-9\-_/]*', '[URL Removed]', body)
-
-    body = re.sub(r'[\u200B\u200C\u200D\u200E\u200F\u202A-\u202E\u2060\uFEFF\u034F\u00AD\u2007\r\n]+', '', body)
-
 
     return {
         "id": str(id),
@@ -136,11 +129,11 @@ def get_email():
 @email_blueprint.route('/raw', methods=["GET"])
 def get_raw_email():
     """Fetch the user's email using the Gmail API service."""
-    emails = fetch_emails(10)
+    max_emails = request.args.get('max', default=10, type=int)
+    emails = fetch_emails(max_emails)
     if isinstance(emails, str):  # If fetch_emails() returned an error string
         return jsonify({"error": emails}), 500
 
-    results = []
     return jsonify(emails)  # Return results as JSON
 
 
