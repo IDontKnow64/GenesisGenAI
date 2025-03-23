@@ -1,21 +1,15 @@
+import os
+import re
+import cohere
+import numpy as np
+import nltk
 from flask import Blueprint, jsonify, session, redirect, request
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
-import os
-import google.auth
-from googleapiclient.discovery import build
-from flask import session
 from base64 import urlsafe_b64decode
-import requests
-import re
-import json
-import os
-import cohere
-import numpy as np
-import nltk
-import re
 from dotenv import load_dotenv
+from sql import *
 
 load_dotenv()
 nltk.download('punkt_tab')
@@ -27,94 +21,111 @@ def add_punctuation(line):
         return line + '.'
     return line
 
-def detect_scam(email_content):
 
-    api_key = os.getenv("CO_API_KEY")
+def detect_scam(mail):
+     api_key = os.getenv("CO_API_KEY")
+     email_content = mail
+     model = 'command-a-03-2025'
+     temperature = 0.1
 
-    co = cohere.ClientV2(api_key)
+     try:
 
-    # Universal naming scheme
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(script_dir, "email_test.txt")
-
-    response = co.chat(
-        model="command-a-03-2025",
-        messages=[
-                {  
-                    "role": "system",
-                    "content": "You respond with only either 'scam' or 'safe' for the given email"
-                },
-                {
-                "role": "user",
-                "content": email_content,
-                }
-            ],
-        temperature = 0.0
-    )
-
-    print (response.message.content[0].text)
-
-    if (response.message.content[0].text == "scam"):
-        lines = email_content.split('\n')
-        processed_lines = [add_punctuation(line) for line in lines]
-        processed_email_content = '\n'.join(processed_lines)
-        clean_content = re.sub(r'•⁠  ', '-', processed_email_content)
-        clean_content = re.sub(r':', '.', clean_content)
-        documents = nltk.sent_tokenize(clean_content)
-
-        doc_emb = co.embed(
-            texts=documents,
-            model="embed-english-v3.0",
-            input_type="search_document",
-            embedding_types=["float"],
-        ).embeddings.float
-
-        query = "Which parts of an email indicates that it is a scam?"
-
-        query_emb = co.embed(
-            texts=[query],
-            model="embed-english-v3.0",
-            input_type="search_query",
-            embedding_types=["float"],
-        ).embeddings.float
-
-        scores = np.dot(query_emb, np.transpose(doc_emb))[0]
-        scores_max = scores.max()
-        scores_norm = (scores) / (scores_max)
-        # Sort and filter documents based on scores
-        top_n = 5
-        top_doc_idxs = np.argsort(-scores)[:top_n]
-
-        top_docs = "\n"
-        
-        for idx, docs_idx in enumerate(top_doc_idxs):
-            rank = (f"Rank: {idx+1}")
-            reasons = (f"Document: {documents[docs_idx]}\n")
-            originalScore = scores_norm[docs_idx]*100
-            score= (f"Score: {originalScore}.2f%\n")
-            top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
+        co = cohere.ClientV2(api_key)
 
         response = co.chat(
-        model="command-a-03-2025",
-        messages=[
-                {  
-                    "role": "system",
-                    "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"
-                },
-                {
-                "role": "user",
-                "content": email_content+top_docs,
-                }
-            ],
-        temperature = 0.1
+            model=model,
+            messages=[
+                    {  
+                        "role": "system",
+                        "content": "You respond with only either 'scam' or 'safe' for the given email and then you respond with only a number that gives a scam rating from 0 (safe) to 100 (guaranteened scam)"
+                    },
+                    {
+                    "role": "user",
+                    "content": email_content,
+                    }
+                ],
+            temperature = temperature
         )
-
         #print (response.message.content[0].text)
-        reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
-        cleaned_reasons = [reason.strip() for reason in reasons]
-        return ["Scam", cleaned_reasons, score]
-    else:
-        return ["Safe", "Reasons", 100] 
+        scam_score = response.message.content[0].text.split()[1]
+
+        if (response.message.content[0].text.split()[0]=="scam"):
+            result = "scam"
+            lines = email_content.split('\n')
+            processed_lines = [add_punctuation(line) for line in lines]
+            processed_email_content = '\n'.join(processed_lines)
+            clean_content = re.sub(r'•⁠  ', '-', processed_email_content)
+            clean_content = re.sub(r':', '.', clean_content)
+            documents = nltk.sent_tokenize(clean_content)
+
+            doc_emb = co.embed(
+                texts=documents,
+                model="embed-english-v3.0",
+                input_type="search_document",
+                embedding_types=["float"],
+            ).embeddings.float
+
+            query = "Which parts of an email indicates that it is a scam?"
+
+            query_emb = co.embed(
+                texts=[query],
+                model="embed-english-v3.0",
+                input_type="search_query",
+                embedding_types=["float"],
+            ).embeddings.float
+
+            scores = np.dot(query_emb, np.transpose(doc_emb))[0]
+            scores_max = scores.max()
+            scores_norm = (scores) / (scores_max)
+            # Sort and filter documents based on scores
+            top_n = 5
+            top_doc_idxs = np.argsort(-scores)[:top_n]
+
+            top_docs = "\n"
+            
+            for idx, docs_idx in enumerate(top_doc_idxs):
+                print(f"Rank: {idx+1}")
+                print(f"Document: {documents[docs_idx]}\n")
+                print(f"Score: {scores_norm[docs_idx]}\n")
+                top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
+
+            response = co.chat(
+            model="command-a-03-2025",
+            messages=[
+                    {  
+                        "role": "system",
+                        "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"
+                    },
+                    {
+                    "role": "user",
+                    "content": email_content+top_docs,
+                    }
+                ],
+            temperature = 0.1
+            )
+
+            #print (response.message.content[0].text)
+            raw_reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
+            reasons = [reason.strip() for reason in raw_reasons]
+        else:
+            result = "safe"
+            top_docs = "N/A"
+            reasons = "N/A"
+            scores_norm = [100]
+        
+        print(result)
+
+        return ({
+            "result": result,
+            "scam_score": scam_score,
+            "text": top_docs,
+            "reason": reasons,
+            "model": model,
+            "scores": scores_norm*100
+        })
+     
+     except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 def get_gmail_service():
     """Authenticate and return Gmail service object."""
@@ -122,7 +133,6 @@ def get_gmail_service():
     if not credentials:
         return None  # No credentials found
 
-    from google.oauth2.credentials import Credentials
     creds = Credentials(
         token=credentials["token"],
         refresh_token=credentials["refresh_token"],
@@ -185,6 +195,7 @@ def get_user_email():
         # Fetch user profile using 'me' (authenticated user)
         profile = service.users().getProfile(userId='me').execute()
         return profile.get('emailAddress')  # Return email address
+    
     except Exception as e:
         print(f"Error fetching email: {str(e)}")
         return None
@@ -215,40 +226,75 @@ def fetch_emails(max):
     except Exception as e:
         return f"❌ Error fetching emails: {str(e)}"
 
-email_blueprint = Blueprint('email', __name__)
+email_blueprint = Blueprint('emails', __name__)
+
+@email_blueprint.route('/')
+def check_email_connection():
+    return {
+        'message': 'Email Connected?',
+        'connected': str("google_credentials" in session) 
+        }
+
+@email_blueprint.route('/address', methods=["GET"])
+def get_email():
+    """Fetch the user's email using the Gmail API service."""
+    try:
+        email = get_user_email()
+        return jsonify({"email": email})
+    except Exception as e:
+        print(f"Error fetching email: {str(e)}")
+        return jsonify({"error": "Failed to fetch email", "details": str(e)}), 500
+
+@email_blueprint.route('/creds', methods=["GET"])
+def get_user_creds():
+    # First check authentication
+    service = get_gmail_service()
+    if not service:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    try:
+        # Get credentials from session
+        credentials = session.get("google_credentials")
+        
+        if not credentials:
+            return jsonify({"error": "No credentials found in session"}), 404
+
+        # Construct proper JSON response
+        return jsonify({
+            "token": credentials.get("token"),
+            "refresh_token": credentials.get("refresh_token"),
+            "token_uri": credentials.get("token_uri"),
+            "client_id": credentials.get("client_id"),
+            "client_secret": credentials.get("client_secret"),
+            "scopes": credentials.get("scopes")
+        })
+
+    except Exception as e:
+        print(f"Error fetching credentials: {str(e)}")
+        return jsonify({
+            "error": "Failed to fetch credentials",
+            "details": str(e)
+        }), 500
 
 @email_blueprint.route('/messages/<message_id>')
 def get_message(message_id):
     # Check if user is authenticated
-    if 'google_credentials' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    # Retrieve stored credentials from session
-    creds_data = session['google_credentials']
+    service = get_gmail_service()
     
-    # Create Credentials object
-    credentials = Credentials(
-        token=creds_data['token'],
-        refresh_token=creds_data['refresh_token'],
-        token_uri=creds_data['token_uri'],
-        client_id=creds_data['client_id'],
-        client_secret=creds_data['client_secret'],
-        scopes=creds_data['scopes']
-    )
+    if not service:
+        return jsonify({"error": "Not authenticated"}), 401
 
     # Refresh token if expired
-    if credentials.expired:
-        try:
-            credentials.refresh(Request())
-            # Update session with new token
-            session['google_credentials']['token'] = credentials.token
-        except Exception as e:
-            return jsonify({'error': 'Failed to refresh token', 'details': str(e)}), 401
+    # if credentials.expired:
+    #     try:
+    #         credentials.refresh(Request())
+    #         # Update session with new token
+    #         session['google_credentials']['token'] = credentials.token
+    #     except Exception as e:
+    #         return jsonify({'error': 'Failed to refresh token', 'details': str(e)}), 401
 
     try:
-        # Build Gmail API client
-        service = build('gmail', 'v1', credentials=credentials)
-        
+        # Build Gmail API client        
         # Get message details
         message = service.users().messages().get(
             userId='me',
@@ -264,10 +310,17 @@ def get_message(message_id):
             'details': str(e)
         }), 500
     
-@email_blueprint.route('/setfolders')
+@email_blueprint.route('/setfolders', methods=["GET", "POST"])
 def get_email():
     email = get_user_email()  # Fetch the email address using Gmail API
-    print(email)
+    db = SQL("sqlite:///users.db")
+
+    user = db.execute("SELECT * FROM users WHERE emailaddress = :emailaddress", emailaddress=email)
+
+    if len(user) == 0:
+        db.execute("INSERT INTO users (emailaddress) VALUES (:emailaddress)", emailaddress=email)
+        db.commit()
+
     if email:
         return jsonify({'email': email})  # Return the email in a JSON response
     else:
@@ -284,6 +337,14 @@ def check():
 
     for email in emails:
         scam_result = detect_scam(email['Body'])  # Call the updated function
-        results.append({"email": email, "scam_status": scam_result[0], "confidence": scam_result[2]})  # Store both email and scam result
+        """
+            "result": result,
+            "text": top_docs,
+            "reason": reasons,
+            "model": model,
+            "scores": scores_norm
+        """
+        print(scam_result)
+        results.append({"email": email, "scam_status": scam_result['result'], "confidence": round(scam_result['scores'][0])})  # Store both email and scam result
 
     return jsonify(results)  # Return results as JSON
