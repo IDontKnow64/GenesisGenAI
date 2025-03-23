@@ -227,3 +227,35 @@ def summary():
         results.append({"email": email, "summary": summary})  
 
     return jsonify(results)  # Return results as JSON
+
+@email_blueprint.route('/summarize/<message_id>', methods=['GET'])
+def summarize(message_id):
+    service = get_gmail_service()
+
+    # Check authentication
+    if service is None:
+        return jsonify({"error": "Authentication required"}), 401
+
+    # Fetch email from Gmail API
+    try:
+        message = service.users().messages().get(
+            userId='me',
+            id=message_id,
+            format='full'
+        ).execute()
+    except Exception as e:
+        return jsonify({"error": f"Gmail API Error: {e}"}), 500
+
+    # Extract structured email data using helper
+    email = extract_email_details(message, message_id)
+    
+    # Generate summary and prepare response
+    try:
+        summary = chd.generate_summary(email['Body'])
+    except Exception as e:
+        return jsonify({"error": f"Summary generation failed: {e}"}), 500
+
+    return jsonify({
+        "email": email,
+        "summary": summary
+    })

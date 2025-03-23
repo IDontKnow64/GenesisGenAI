@@ -44,13 +44,19 @@ import {
 } from "@/components/ui/tooltip"
 import { Mail } from "@/test/data"
 import CircleChart from "@/components/CircleChart"
+import { useState } from "react"
 
 interface MailDisplayProps {
   mail: Mail | null
 }
 
 export function MailDisplay({ mail }: MailDisplayProps) {
+  const [summaryText, setSummaryText] = useState("")
   const today = new Date()
+
+  const summerizeCurrent = async (message_id) => {
+    
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -79,8 +85,8 @@ export function MailDisplay({ mail }: MailDisplayProps) {
         <div>
         <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" disabled={!mail}>
-                summarize
+              <Button onClick={() => summerizeCurrent(mail?.id)} variant="outline" disabled={!mail}>
+                summarize {mail?.id}
               </Button>
             </TooltipTrigger>
             <TooltipContent>summarize</TooltipContent>
@@ -123,7 +129,7 @@ export function MailDisplay({ mail }: MailDisplayProps) {
             {mail.text}
           </div>
           <Separator className="mt-auto" />
-          <CircleChart />
+          <CircleChart msg_id={mail.id} description={summaryText}/>
 
           </div>
 
