@@ -30,7 +30,7 @@ def get_gmail_service():
 
     return build("gmail", "v1", credentials=creds)
 
-def extract_email_details(message):
+def extract_email_details(message, id):
     """Extract email details like Subject, From, To, CC, and Body."""
     headers = message.get("payload", {}).get("headers", [])
     parts = message.get("payload", {}).get("parts", [])
@@ -63,6 +63,7 @@ def extract_email_details(message):
 
 
     return {
+        "id": str(id),
         "Subject": subject,
         "From": sender,
         "To": recipient,
@@ -104,7 +105,7 @@ def fetch_emails(max):
         for msg in messages:
             msg_id = msg["id"]
             message = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
-            email_details = extract_email_details(message)
+            email_details = extract_email_details(message, id)
             email_list.append(email_details)
 
         return email_list
@@ -197,7 +198,7 @@ def get_message(message_id):
         }), 500
     
 @email_blueprint.route('/setfolders', methods=["GET", "POST"])
-def get_email():
+def set_email_db():
     email = get_user_email()  # Fetch the email address using Gmail API
     db = SQL("sqlite:///users.db")
 
