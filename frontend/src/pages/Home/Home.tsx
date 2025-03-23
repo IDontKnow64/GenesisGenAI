@@ -1,18 +1,32 @@
 import { FC, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "../../components/ui/button"
+import { emailService } from "@/services/api"
 
 const HomePage: FC = () => {
-    const [counter, setCounter] = useState<number>(0);
     const navigate = useNavigate();
 
     const onConnectEmail = () => {
-        setCounter(counter + 1);
         navigate("/login");
     }
-
-    const onNavigateMail = () => {
-        navigate("/mail")
+    const checkEmailConnection = async () => {
+        try {
+          const response = await emailService.checkConnection();
+          console.log(response)
+          return response['connected'];
+        } catch (error) {
+          console.error('Connection check failed:', error);
+          return false;
+        }
+      };
+    const onNavigateMail = async () => {
+        const isConnected = await checkEmailConnection();
+        console.log(isConnected);
+        if (isConnected) {
+            navigate("/mail");
+        } else {
+            navigate("/login")
+        }
     }
 
     return (
@@ -32,7 +46,7 @@ const HomePage: FC = () => {
                     <Button onClick={onConnectEmail} className="px-8 py-3 text-white 
                                     transition-colors duration-300
                                     shadow-lg transform hover:scale-105">
-                        Connect email
+                        Manage Account
                     </Button>
                     <Button onClick={onNavigateMail} className="px-8 py-3 text-white 
                                     transition-colors duration-300

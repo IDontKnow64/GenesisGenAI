@@ -25,19 +25,27 @@ app.config['SESSION_PERMANENT'] = True  # Keep session alive
 app.config['SESSION_USE_SIGNER'] = True  # Prevent session tampering
 
 Session(app)
-CORS(app, 
-    resources={
-    r"/auth/*": {
-        "origins": "http://localhost:5173",
-        "supports_credentials": True,
-        "methods": ["GET", "POST", "PUT", "DELETE"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    },
-    r"/api/*": {
-        "origins": ["http://localhost:5173"],
-        "methods": ["GET"]
-    }
-})
+CORS(app)
+# CORS(
+#     app,
+#     resources={
+#         r"/auth/*": {
+#             "origins": "http://localhost:5173",
+#             "supports_credentials": True,
+#             "methods": ["GET", "POST", "PUT", "DELETE"],
+#             "allow_headers": ["Content-Type", "Authorization"]
+#         },
+#         r"/api/*": {
+#             "origins": ["http://localhost:5173"],
+#             "methods": ["GET"]
+#         },
+#         # Add this for email routes
+#         r"/emails/*": {
+#             "origins": ["http://localhost:5173"],
+#             "methods": ["GET", "POST"]
+#         }
+#     }
+# )
 
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
