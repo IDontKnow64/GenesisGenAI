@@ -68,7 +68,7 @@ export function MobileMail({
                         sizes
                     )}`
                 }}
-                className="h-full min-h-[800px] max-h-[800px] items-stretch"
+                className="h-screen min-h-screen w-full"
             >
                 <ResizablePanel
                     defaultSize={defaultLayout[0]}
@@ -90,7 +90,8 @@ export function MobileMail({
                     }}
                     className={cn(
                         isCollapsed &&
-                        "min-w-[50px] transition-all duration-300 ease-in-out"
+                        "min-w-[50px] transition-all duration-300 ease-in-out",
+                        "flex flex-col"
                     )}
                 >
                     <div
@@ -148,9 +149,11 @@ export function MobileMail({
                                 sizes
                             )}`
                         }}
-                        className="w-full items-stretch"
+                        className="h-full flex-1"
                     >
-                        <ResizablePanel defaultSize={defaultLayout[0]} minSize={30}>
+                        <ResizablePanel defaultSize={defaultLayout[0]}
+                                        minSize={30}
+                                        className="flex flex-col">
                             <Tabs defaultValue="all">
                                 <div className="flex items-center px-4 py-2">
                                     <h1 className="text-xl font-bold">Inbox</h1>
