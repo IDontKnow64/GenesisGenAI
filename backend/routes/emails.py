@@ -12,8 +12,20 @@ from utils import cohere_detection as chd
 
 load_dotenv()
 nltk.download('punkt_tab')
-   
+
 api_key = os.getenv("CO_API_KEY")
+
+def sort_into_folders(folders, descriptions, emails):
+    """Sort emails into folders based on AI classification using descriptions."""
+    categorized_emails = {folder: [] for folder in folders.values()}
+
+    for email in emails:
+        classification = chd.classify_email(email['Body'], descriptions)  # AI determines the best fit
+        folder_name = folders.get(classification, "Uncategorized")  # Match to a folder
+        categorized_emails[folder_name].append(email)  # Store email in folder
+    
+    return categorized_emails
+
 
 def get_gmail_service():
     """Authenticate and return Gmail service object."""
@@ -106,6 +118,17 @@ def fetch_emails(max):
     except Exception as e:
         return f"❌ Error fetching emails: {str(e)}"
 
+def sort_into_folders(folders, descriptions, emails):
+    """Sort emails into folders based on AI classification using descriptions."""
+    categorized_emails = {folder: [] for folder in folders.values()}
+
+    for email in emails:
+        classification = chd.classify_email_using_embeddings(email['Body'], descriptions)  # AI determines the best fit
+        folder_name = folders.get(classification, "Uncategorized")  # Match to a folder
+        categorized_emails[folder_name].append(email)  # Store email in folder
+    
+    return categorized_emails
+
 email_blueprint = Blueprint('emails', __name__)
 
 @email_blueprint.route('/')
@@ -113,7 +136,7 @@ def check_email_connection():
     return {
         'message': 'Email Connected?',
         'connected': str("google_credentials" in session) 
-        }
+    }
 
 @email_blueprint.route('/address', methods=["GET"])
 def get_email():
@@ -134,72 +157,6 @@ def get_raw_email():
 
     return jsonify(emails)  # Return results as JSON
 
-
-@email_blueprint.route('/creds', methods=["GET"])
-def get_user_creds():
-    # First check authentication
-    service = get_gmail_service()
-    if not service:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    try:
-        # Get credentials from session
-        credentials = session.get("google_credentials")
-        
-        if not credentials:
-            return jsonify({"error": "No credentials found in session"}), 404
-
-        # Construct proper JSON response
-        return jsonify({
-            "token": credentials.get("token"),
-            "refresh_token": credentials.get("refresh_token"),
-            "token_uri": credentials.get("token_uri"),
-            "client_id": credentials.get("client_id"),
-            "client_secret": credentials.get("client_secret"),
-            "scopes": credentials.get("scopes")
-        })
-
-    except Exception as e:
-        print(f"Error fetching credentials: {str(e)}")
-        return jsonify({
-            "error": "Failed to fetch credentials",
-            "details": str(e)
-        }), 500
-
-@email_blueprint.route('/messages/<message_id>')
-def get_message(message_id):
-    # Check if user is authenticated
-    service = get_gmail_service()
-    
-    if not service:
-        return jsonify({"error": "Not authenticated"}), 401
-
-    # Refresh token if expired
-    # if credentials.expired:
-    #     try:
-    #         credentials.refresh(Request())
-    #         # Update session with new token
-    #         session['google_credentials']['token'] = credentials.token
-    #     except Exception as e:
-    #         return jsonify({'error': 'Failed to refresh token', 'details': str(e)}), 401
-
-    try:
-        # Build Gmail API client        
-        # Get message details
-        message = service.users().messages().get(
-            userId='me',
-            id=message_id,
-            format='metadata'  # Can be 'full', 'metadata', 'minimal', or 'raw'
-        ).execute()
-
-        return jsonify(message)
-    
-    except Exception as e:
-        return jsonify({
-            'error': 'Failed to retrieve message',
-            'details': str(e)
-        }), 500
-    
 @email_blueprint.route('/setfolders', methods=["GET", "POST"])
 def set_email_db():
     email = get_user_email()  # Fetch the email address using Gmail API
@@ -215,6 +172,29 @@ def set_email_db():
         return jsonify({'email': email})  # Return the email in a JSON response
     else:
         return jsonify({'error': 'Failed to retrieve email'}), 400
+
+@email_blueprint.route('/sortintofolders', methods=["GET", "POST"])
+def sortintofolders():
+    emails = fetch_emails(10)  # Fetch emails
+
+    descriptions = {
+        "Work": "Emails related to job, tasks, meetings, and projects.",
+        "Personal": "Conversations with friends and family.",
+        "Promotions": "Marketing, sales, and discount emails."
+    }
+
+    folders = {
+        "Work": "Work Emails",
+        "Personal": "Personal Emails",
+        "Promotions": "Promotions",
+        "Uncategorized": "Uncategorized"
+    }
+
+    if isinstance(emails, str):  # If fetch_emails() returned an error string
+        return jsonify({"error": emails}), 500
+
+    categorized_emails = sort_into_folders(folders, descriptions, emails)  # Calls classify_email internally
+    return jsonify(categorized_emails)
 
 @email_blueprint.route('/check', methods=['GET'])
 def check():

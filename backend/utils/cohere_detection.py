@@ -1,43 +1,39 @@
-import cohere, os
+import cohere
+import os
 import numpy as np
+from scipy.spatial.distance import cosine
 import re
 import nltk
-
-api_key = os.getenv("CO_API_KEY")
-
-co = cohere.ClientV2(api_key)
+from base64 import urlsafe_b64decode
 
 def add_punctuation(line):
-    # Strip extra spaces at the start and end of the line
+    """Adds punctuation to a line if it doesn't end with one."""
     line = line.strip()
-    if line and not line[-1] in ['.', '?', '!',":"]:
+    if line and not line[-1] in ['.', '?', '!', ":"]:
         return line + '.'
     return line
 
 def detect_scam(email_content):
+    """Detects if an email is a scam using Cohere's API."""
+    api_key = os.getenv("CO_API_KEY")
+    if not api_key:
+        raise ValueError("CO_API_KEY environment variable not set")
 
-    # Universal naming scheme
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(script_dir, "email_test.txt")
+    co = cohere.Client(api_key)
 
+    # Classify the email as scam or safe
     response = co.chat(
         model="command-a-03-2025",
         messages=[
-                {  
-                    "role": "system",
-                    "content": "You respond with only either 'scam' or 'safe' for the given email"
-                },
-                {
-                "role": "user",
-                "content": email_content,
-                }
-            ],
-        temperature = 0.0
+            {"role": "system", "content": "You respond with only either 'scam' or 'safe' for the given email"},
+            {"role": "user", "content": email_content}
+        ],
+        temperature=0.0
     )
 
-    print(response.message.content[0].text)
-
-    if (response.message.content[0].text == "scam"):
+    classification = response.text.strip().lower()
+    if classification == "scam":
+        # Process the email content
         lines = email_content.split('\n')
         processed_lines = [add_punctuation(line) for line in lines]
         processed_email_content = '\n'.join(processed_lines)
@@ -45,67 +41,52 @@ def detect_scam(email_content):
         clean_content = re.sub(r':', '.', clean_content)
         documents = nltk.sent_tokenize(clean_content)
 
+        # Get embeddings for the documents
         doc_emb = co.embed(
             texts=documents,
             model="embed-english-v3.0",
-            input_type="search_document",
-            embedding_types=["float"],
-        ).embeddings.float
+            input_type="search_document"
+        ).embeddings
 
         query = "Which parts of an email indicates that it is a scam?"
-
         query_emb = co.embed(
             texts=[query],
             model="embed-english-v3.0",
-            input_type="search_query",
-            embedding_types=["float"],
-        ).embeddings.float
+            input_type="search_query"
+        ).embeddings
 
+        # Calculate similarity scores
         scores = np.dot(query_emb, np.transpose(doc_emb))[0]
         scores_max = scores.max()
-        scores_norm = (scores) / (scores_max)
-        # Sort and filter documents based on scores
+        scores_norm = scores / scores_max
         top_n = 5
         top_doc_idxs = np.argsort(-scores)[:top_n]
 
-        top_docs = "\n"
-        
-        for idx, docs_idx in enumerate(top_doc_idxs):
-            rank = (f"Rank: {idx+1}")
-            reasons = (f"Document: {documents[docs_idx]}\n")
-            originalScore = scores_norm[docs_idx]*100
-            score= (f"Score: {originalScore}.2f%\n")
-            top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
+        top_docs = "\n".join([f"Phrase {idx+1}: {documents[docs_idx]}" for idx, docs_idx in enumerate(top_doc_idxs)])
 
+        # Get reasons why the email is a scam
         response = co.chat(
-        model="command-a-03-2025",
-        messages=[
-                {  
-                    "role": "system",
-                    "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"
-                },
-                {
-                "role": "user",
-                "content": email_content+top_docs,
-                }
+            model="command-a-03-2025",
+            messages=[
+                {"role": "system", "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"},
+                {"role": "user", "content": email_content + top_docs}
             ],
-        temperature = 0.1
+            temperature=0.1
         )
 
-        #print (response.message.content[0].text)
-        reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
+        reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.text)
         cleaned_reasons = [reason.strip() for reason in reasons]
-        return ["Scam", cleaned_reasons, round(originalScore)]
+        return ["Scam", cleaned_reasons, round(scores_norm[top_doc_idxs[0]] * 100)]
     else:
-        return ["Safe", "Reasons", 100] 
-
+        return ["Safe", "Reasons", 100]
 
 def summarize_email(email_body):
-    """
-    Summarizes the email content to focus on key points.
-    :param email_body: The text content of the email.
-    :return: A summarized version of the email.
-    """
+    """Summarizes the email content using Cohere's API."""
+    api_key = os.getenv("CO_API_KEY")
+    if not api_key:
+        raise ValueError("CO_API_KEY environment variable not set")
+
+    co = cohere.Client(api_key)
     try:
         response = co.summarize(
             model="command-r",
@@ -113,33 +94,89 @@ def summarize_email(email_body):
             length="short",
             format="paragraph"
         )
-        return response.summary  # Return summarized email
+        return response.summary
     except Exception as e:
         print(f"Error summarizing email: {e}")
-        return email_body  # Fall back to full email if summarization fails
+        return email_body
 
-def classify_email(email_body, descriptions):
-    """
-    Uses AI to classify a summarized email into one of the given folder descriptions.
+def extract_email_body(email_data):
+    """Extracts email body from raw email MIME structure."""
+    try:
+        if isinstance(email_data, str):
+            return email_data.strip()
 
-    :param email_body: The text content of the email.
-    :param descriptions: A dictionary where keys are classification labels and values are folder descriptions.
-    :return: The most relevant classification label.
-    """
-    summary = summarize_email(email_body)  # Summarize email before classification
-    labels = list(descriptions.keys())  # Extract classification labels
+        parts = email_data.get('payload', {}).get('parts', [])
+        body = None
+
+        if not parts:
+            body_data = email_data['payload']['body'].get('data', '')
+            body = urlsafe_b64decode(body_data).decode('utf-8')
+        else:
+            for part in parts:
+                mime_type = part.get('mimeType')
+                if mime_type == 'text/plain':
+                    body = urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                    break
+                elif mime_type == 'text/html':
+                    body = urlsafe_b64decode(part['body']['data']).decode('utf-8')
+
+        return body.strip() if body else None
+    except Exception as e:
+        print(f"Error extracting email body: {e}")
+        return None
+
+def get_embedding(text):
+    """Generates embedding for a given text using Cohere API."""
+    api_key = os.getenv("CO_API_KEY")
+    if not api_key:
+        raise ValueError("CO_API_KEY environment variable not set")
+
+    co = cohere.Client(api_key)
+    if not text:
+        print("Warning: Email content is empty.")
+        return np.zeros(1024)
 
     try:
-        response = co.classify(
+        response = co.embed(
             model="embed-english-v3.0",
-            inputs=[summary],  # Use summarized email instead of full body
-            examples=[(desc, label) for label, desc in descriptions.items()],
+            texts=[text],
+            input_type="search_document"
         )
-
-        if response.classifications:
-            return response.classifications[0].prediction  # Return the best-matching label
-
+        return np.array(response.embeddings[0])
     except Exception as e:
-        print(f"Error classifying email: {e}")
+        print(f"Error generating embedding: {e}")
+        return np.zeros(1024)
 
-    return "Uncategorized"  # Default if classification fails
+def cosine_similarity(vec1, vec2):
+    """Computes cosine similarity between two embeddings."""
+    if vec1 is None or vec2 is None or len(vec1) == 0 or len(vec2) == 0:
+        print("Warning: One or both vectors are missing. Returning similarity of 0.")
+        return 0
+
+    return 1 - cosine(vec1, vec2)
+
+def classify_email_using_embeddings(email_body, folder_descriptions):
+    """
+    Classifies an email into a folder based on its similarity to predefined folder descriptions.
+    :param email_body: The content of the email.
+    :param folder_descriptions: Dictionary mapping folder names to their descriptions.
+    :return: The best matching folder.
+    """
+    email_embedding = get_embedding(email_body)
+    folder_embeddings = {folder: get_embedding(desc) for folder, desc in folder_descriptions.items()}
+
+    best_match = "Uncategorized"
+    best_score = 0
+
+    for folder, folder_embedding in folder_embeddings.items():
+        similarity = cosine_similarity(email_embedding, folder_embedding)
+        print(f"Similarity with {folder}: {similarity:.4f}")
+
+        if similarity > best_score:
+            best_match = folder
+            best_score = similarity
+
+    if best_score < 0.1:
+        best_match = "Uncategorized"
+
+    return best_match
