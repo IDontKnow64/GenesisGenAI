@@ -32,7 +32,7 @@ if __name__ == "__main__":
         messages=[
                 {  
                     "role": "system",
-                    "content": "You respond with only either 'scam' or 'safe' for the given email"
+                    "content": "You respond with only either 'scam' or 'safe' for the given email and then you respond with only a number that gives a scam rating from 0 (safe) to 100 (guaranteened scam)"
                 },
                 {
                 "role": "user",
@@ -42,9 +42,12 @@ if __name__ == "__main__":
         temperature = 0.0
     )
 
-    print (response.message.content[0].text)
+    #print (response.message.content[0].text)
+    scam_score = response.message.content[0].text.split()[1]
 
-    if (response.message.content[0].text == "scam"):
+    print(scam_score)
+
+    if (response.message.content[0].text.split()[0] == "scam"):
         lines = email_content.split('\n')
         processed_lines = [add_punctuation(line) for line in lines]
         processed_email_content = '\n'.join(processed_lines)
