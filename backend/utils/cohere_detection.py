@@ -19,19 +19,19 @@ def detect_scam(email_content):
     if not api_key:
         raise ValueError("CO_API_KEY environment variable not set")
 
-    co = cohere.Client(api_key)
+    co = cohere.ClientV2(api_key)
 
     # Classify the email as scam or safe
     response = co.chat(
         model="command-a-03-2025",
         messages=[
-            {"role": "system", "content": "You respond with only either 'scam' or 'safe' for the given email"},
+            {"role": "system", "content": "You are an expert at detecting fraud or phishing emails. You know exactly what key markers make a fraud email. Given an email, determine whether it is safe or fraudulent by only responding with either 'scam' or 'safe' for the given email. Do not add any additional punctuation."},
             {"role": "user", "content": email_content}
         ],
         temperature=0.0
     )
 
-    classification = response.text.strip().lower()
+    classification = response.message.content[0].text.strip().lower()
     if classification == "scam":
         # Process the email content
         lines = email_content.split('\n')
@@ -76,9 +76,9 @@ def detect_scam(email_content):
 
         reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.text)
         cleaned_reasons = [reason.strip() for reason in reasons]
-        return ["Scam", cleaned_reasons, round(scores_norm[top_doc_idxs[0]] * 100)]
+        return ("Scam", cleaned_reasons, round(scores_norm[top_doc_idxs[0]] * 100))
     else:
-        return ["Safe", "Reasons", 100]
+        return ("Safe", [""], 100)
 
 def summarize_email(email_body):
     """Summarizes the email content using Cohere's API."""

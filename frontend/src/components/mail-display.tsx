@@ -1,42 +1,16 @@
-import { addDays } from "date-fns/addDays"
-import { addHours } from "date-fns/addHours"
 import { format } from "date-fns/format"
-import { nextSaturday } from "date-fns/nextSaturday"
 import {
-  Archive,
   ArchiveX,
-  Clock,
-  Forward,
-  MoreVertical,
-  Reply,
-  ReplyAll,
   Trash2,
 } from "lucide-react"
 
-import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
   TooltipContent,
@@ -52,14 +26,33 @@ interface MailDisplayProps {
 
 export function MailDisplay({ mail }: MailDisplayProps) {
   const [summaryText, setSummaryText] = useState("")
+  const [scoreText, setScore] = useState(100)
+  const [reasonsList, setReasons] = useState([""])
+  const [typeText, setType] = useState("")
   const today = new Date()
 
-  const summerizeCurrent = async (message_id: string) => {
+  const summarizeCurrent = async (message_id: string | undefined) => {
+    if (message_id) {
+      try {
+        const result = await emailService.summarizeEmail(message_id);
+        console.log('Email:', result.email);
+        console.log('Summary:', result.summary);
+        setSummaryText(result.summary);
+      } catch (error) {
+        console.log("Error summarizing")
+      }
+    }
+  }
+  const measureScam = async (message_id: string) => {
     try {
-      const result = await emailService.summarizeEmail(message_id);
+      const result = await emailService.scanEmail(message_id);
       console.log('Email:', result.email);
-      console.log('Summary:', result.summary);
-      setSummaryText(result.summary);
+      console.log('Type:', result.type);
+      console.log('Email:', result.reasons);
+      console.log('Score:', result.score);
+      setScore(result.score)
+      setReasons(result.reasons)
+      setType(result.type)
     } catch (error) {
       console.log("Error summarizing")
     }
@@ -94,14 +87,26 @@ export function MailDisplay({ mail }: MailDisplayProps) {
           <Separator orientation="vertical" className="mx-1 h-6" />
         </div>
         <div>
+        <div className="flex items-center gap-2">
+
         <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={() => summerizeCurrent(mail?.id)} variant="outline" disabled={!mail}>
-                Summarize!
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Summarize</TooltipContent>
-          </Tooltip>
+          <TooltipTrigger asChild>
+            <Button onClick={() => summarizeCurrent(mail?.id)} variant="outline" disabled={!mail}>
+              Summarize!
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Summarize</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button onClick={() => measureScam(mail?.id)} variant="outline" disabled={!mail}>
+              Scan!
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Scan!</TooltipContent>
+        </Tooltip>
+        </div>
+
         </div>
         <div className="ml-auto flex items-center gap-2"/>
         <Separator orientation="vertical" className="mx-2 h-6" />
@@ -136,7 +141,7 @@ export function MailDisplay({ mail }: MailDisplayProps) {
             )}
           </div>
           <Separator />
-          <CircleChart msg_id={mail.id} description={summaryText}/>
+          <CircleChart msg_id={mail.id} description={summaryText} score={scoreText} reasons={reasonsList} type={typeText}/>
           <div className="whitespace-pre-wrap p-4 text-sm">
             {mail.text}
           </div>

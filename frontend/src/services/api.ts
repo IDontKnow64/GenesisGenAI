@@ -105,6 +105,16 @@ export const emailService = {
     }
   },
 
+  scanEmail: async (messageId: string) => {
+    try {
+      const response = await apiClient.get(`/emails/measure/${messageId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to summarize email:', error);
+      throw error;
+    }
+  },
+
   getRawEmails: async (maxEmails) => {
     try {
       const response = await apiClient.get('/emails/raw', {
