@@ -180,3 +180,28 @@ def classify_email_using_embeddings(email_body, folder_descriptions):
         best_match = "Uncategorized"
 
     return best_match
+
+
+def generate_summary(email_content):
+    api_key = os.getenv("CO_API_KEY")
+
+    co = cohere.ClientV2(api_key)
+
+    response = co.chat(
+        model="command-a-03-2025",
+        messages=[
+                {  
+                    "role": "system",
+                    "content": "You respond with a summary of the email content and it should be in bullet points of main ideas."
+                },
+                {
+                "role": "user",
+                "content": email_content,
+                }
+            ],
+        temperature = 0.0
+    )
+
+    print(response.message.content[0].text)
+    return response.message.content[0].text
+    
