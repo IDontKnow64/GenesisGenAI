@@ -1,7 +1,5 @@
 import os
 import re
-import cohere
-import numpy as np
 import nltk
 from flask import Blueprint, jsonify, session, redirect, request
 from googleapiclient.discovery import build
@@ -10,123 +8,11 @@ from google.auth.transport.requests import Request
 from base64 import urlsafe_b64decode
 from dotenv import load_dotenv
 from sql import *
+from utils import cohere_detection as chd
 
 load_dotenv()
 nltk.download('punkt_tab')
-
-def add_punctuation(line):
-    # Strip extra spaces at the start and end of the line
-    line = line.strip()
-    if line and not line[-1] in ['.', '?', '!',":"]:
-        return line + '.'
-    return line
-
-
-def detect_scam(mail):
-     api_key = os.getenv("CO_API_KEY")
-     email_content = mail
-     model = 'command-a-03-2025'
-     temperature = 0.1
-
-     try:
-
-        co = cohere.ClientV2(api_key)
-
-        response = co.chat(
-            model=model,
-            messages=[
-                    {  
-                        "role": "system",
-                        "content": "You respond with only either 'scam' or 'safe' for the given email and then you respond with only a number that gives a scam rating from 0 (safe) to 100 (guaranteened scam)"
-                    },
-                    {
-                    "role": "user",
-                    "content": email_content,
-                    }
-                ],
-            temperature = temperature
-        )
-        #print (response.message.content[0].text)
-        scam_score = response.message.content[0].text.split()[1]
-
-        if (response.message.content[0].text.split()[0]=="scam"):
-            result = "scam"
-            lines = email_content.split('\n')
-            processed_lines = [add_punctuation(line) for line in lines]
-            processed_email_content = '\n'.join(processed_lines)
-            clean_content = re.sub(r'•⁠  ', '-', processed_email_content)
-            clean_content = re.sub(r':', '.', clean_content)
-            documents = nltk.sent_tokenize(clean_content)
-
-            doc_emb = co.embed(
-                texts=documents,
-                model="embed-english-v3.0",
-                input_type="search_document",
-                embedding_types=["float"],
-            ).embeddings.float
-
-            query = "Which parts of an email indicates that it is a scam?"
-
-            query_emb = co.embed(
-                texts=[query],
-                model="embed-english-v3.0",
-                input_type="search_query",
-                embedding_types=["float"],
-            ).embeddings.float
-
-            scores = np.dot(query_emb, np.transpose(doc_emb))[0]
-            scores_max = scores.max()
-            scores_norm = (scores) / (scores_max)
-            # Sort and filter documents based on scores
-            top_n = 5
-            top_doc_idxs = np.argsort(-scores)[:top_n]
-
-            top_docs = "\n"
-            
-            for idx, docs_idx in enumerate(top_doc_idxs):
-                print(f"Rank: {idx+1}")
-                print(f"Document: {documents[docs_idx]}\n")
-                print(f"Score: {scores_norm[docs_idx]}\n")
-                top_docs += (f"Phrase {idx+1}:{documents[docs_idx]}\n")
-
-            response = co.chat(
-            model="command-a-03-2025",
-            messages=[
-                    {  
-                        "role": "system",
-                        "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"
-                    },
-                    {
-                    "role": "user",
-                    "content": email_content+top_docs,
-                    }
-                ],
-            temperature = 0.1
-            )
-
-            #print (response.message.content[0].text)
-            raw_reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
-            reasons = [reason.strip() for reason in raw_reasons]
-        else:
-            result = "safe"
-            top_docs = "N/A"
-            reasons = "N/A"
-            scores_norm = [100]
-        
-        print(result)
-
-        return ({
-            "result": result,
-            "scam_score": scam_score,
-            "text": top_docs,
-            "reason": reasons,
-            "model": model,
-            "scores": scores_norm*100
-        })
-     
-     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
+   
 def get_gmail_service():
     """Authenticate and return Gmail service object."""
     credentials = session.get("google_credentials")
@@ -144,7 +30,7 @@ def get_gmail_service():
 
     return build("gmail", "v1", credentials=creds)
 
-def extract_email_details(message):
+def extract_email_details(message, id):
     """Extract email details like Subject, From, To, CC, and Body."""
     headers = message.get("payload", {}).get("headers", [])
     parts = message.get("payload", {}).get("parts", [])
@@ -177,6 +63,7 @@ def extract_email_details(message):
 
 
     return {
+        "id": str(id),
         "Subject": subject,
         "From": sender,
         "To": recipient,
@@ -218,7 +105,7 @@ def fetch_emails(max):
         for msg in messages:
             msg_id = msg["id"]
             message = service.users().messages().get(userId="me", id=msg_id, format="full").execute()
-            email_details = extract_email_details(message)
+            email_details = extract_email_details(message, msg_id)
             email_list.append(email_details)
 
         return email_list
@@ -244,6 +131,17 @@ def get_email():
     except Exception as e:
         print(f"Error fetching email: {str(e)}")
         return jsonify({"error": "Failed to fetch email", "details": str(e)}), 500
+
+@email_blueprint.route('/raw', methods=["GET"])
+def get_raw_email():
+    """Fetch the user's email using the Gmail API service."""
+    emails = fetch_emails(10)
+    if isinstance(emails, str):  # If fetch_emails() returned an error string
+        return jsonify({"error": emails}), 500
+
+    results = []
+    return jsonify(emails)  # Return results as JSON
+
 
 @email_blueprint.route('/creds', methods=["GET"])
 def get_user_creds():
@@ -311,7 +209,7 @@ def get_message(message_id):
         }), 500
     
 @email_blueprint.route('/setfolders', methods=["GET", "POST"])
-def get_email():
+def set_email_db():
     email = get_user_email()  # Fetch the email address using Gmail API
     db = SQL("sqlite:///users.db")
 
@@ -336,15 +234,7 @@ def check():
     results = []
 
     for email in emails:
-        scam_result = detect_scam(email['Body'])  # Call the updated function
-        """
-            "result": result,
-            "text": top_docs,
-            "reason": reasons,
-            "model": model,
-            "scores": scores_norm
-        """
-        print(scam_result)
-        results.append({"email": email, "scam_status": scam_result['result'], "confidence": round(scam_result['scores'][0])})  # Store both email and scam result
+        scam_result = chd.detect_scam(email['Body'])  # Call the updated function
+        results.append({"email": email, "scam_status": scam_result[0], "confidence": scam_result[2]})  # Store both email and scam result
 
     return jsonify(results)  # Return results as JSON
