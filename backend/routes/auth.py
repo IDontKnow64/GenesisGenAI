@@ -33,6 +33,7 @@ def login():
     # print(f"V2 = {session.get('oauth_state2') = }")
     state = secrets.token_urlsafe(32)
     session['oauth_state2'] = state
+    print(f"I am trying to log in with {session['oauth_state2'] = }!")
     session.permanent = True  # Required for server-side sessions
     
     # Force session save before redirect
@@ -41,8 +42,8 @@ def login():
 
     authorization_url = flow.authorization_url(
         state=state,
-        # access_type='offline',
-        # prompt='consent'  # Force refresh token
+        access_type='offline',
+        prompt='consent'  # Force refresh token
     )[0]
 
     # print(f'''
@@ -69,6 +70,10 @@ def login():
         httponly=True,
         samesite='Lax'
     )
+
+    session['test_field'] = state
+    print(f"I am trying to log in with {session['test_field'] = }!")
+
     return response
 
 @auth_blueprint.route('/callback')
@@ -76,6 +81,9 @@ def callback():
     flow = get_flow()
     # print(f"Callback: {session = }")
     # stored_state = session.get('oauth_state2')
+    print(f"I finished calling with {session['test_field'] = }!")
+    print(f"I finished calling with {session['oauth_state2'] = }!")
+
     stored_state = request.cookies.get('oauth_state')
     print(f"{stored_state = }")
     request_state = request.args.get('state')
@@ -101,6 +109,9 @@ def callback():
     # Get credentials
     flow.fetch_token(authorization_response=request.url)
     credentials = flow.credentials
+
+    print(f"I just logged in with {session['test_field'] = }!")
+
     
     # Store credentials in DB (example using simple session)
     session['google_credentials'] = {
@@ -112,4 +123,4 @@ def callback():
         'scopes': credentials.scopes
     }
     
-    return redirect("http://localhost:5173/")
+    return redirect("http://localhost:5173/mail")

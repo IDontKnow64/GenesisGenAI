@@ -1,20 +1,13 @@
+import os
+import re
+import cohere
+import numpy as np
+import nltk
 from flask import Blueprint, jsonify, session, redirect, request
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
-import os
-import google.auth
-from googleapiclient.discovery import build
-from flask import session
 from base64 import urlsafe_b64decode
-import requests
-import re
-import json
-import os
-import cohere
-import numpy as np
-import nltk
-import re
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,7 +21,6 @@ def add_punctuation(line):
     return line
 
 def detect_scam(email_content):
-
     api_key = os.getenv("CO_API_KEY")
 
     co = cohere.ClientV2(api_key)
@@ -52,7 +44,7 @@ def detect_scam(email_content):
         temperature = 0.0
     )
 
-    print (response.message.content[0].text)
+    print(response.message.content[0].text)
 
     if (response.message.content[0].text == "scam"):
         lines = email_content.split('\n')
@@ -122,7 +114,6 @@ def get_gmail_service():
     if not credentials:
         return None  # No credentials found
 
-    from google.oauth2.credentials import Credentials
     creds = Credentials(
         token=credentials["token"],
         refresh_token=credentials["refresh_token"],
@@ -185,6 +176,7 @@ def get_user_email():
         # Fetch user profile using 'me' (authenticated user)
         profile = service.users().getProfile(userId='me').execute()
         return profile.get('emailAddress')  # Return email address
+    
     except Exception as e:
         print(f"Error fetching email: {str(e)}")
         return None
@@ -215,40 +207,75 @@ def fetch_emails(max):
     except Exception as e:
         return f"❌ Error fetching emails: {str(e)}"
 
-email_blueprint = Blueprint('email', __name__)
+email_blueprint = Blueprint('emails', __name__)
+
+@email_blueprint.route('/')
+def check_email_connection():
+    return {
+        'message': 'Email Connected?',
+        'connected': str("google_credentials" in session) 
+        }
+
+@email_blueprint.route('/address', methods=["GET"])
+def get_email():
+    """Fetch the user's email using the Gmail API service."""
+    try:
+        email = get_user_email()
+        return jsonify({"email": email})
+    except Exception as e:
+        print(f"Error fetching email: {str(e)}")
+        return jsonify({"error": "Failed to fetch email", "details": str(e)}), 500
+
+@email_blueprint.route('/creds', methods=["GET"])
+def get_user_creds():
+    # First check authentication
+    service = get_gmail_service()
+    if not service:
+        return jsonify({"error": "Not authenticated"}), 401
+
+    try:
+        # Get credentials from session
+        credentials = session.get("google_credentials")
+        
+        if not credentials:
+            return jsonify({"error": "No credentials found in session"}), 404
+
+        # Construct proper JSON response
+        return jsonify({
+            "token": credentials.get("token"),
+            "refresh_token": credentials.get("refresh_token"),
+            "token_uri": credentials.get("token_uri"),
+            "client_id": credentials.get("client_id"),
+            "client_secret": credentials.get("client_secret"),
+            "scopes": credentials.get("scopes")
+        })
+
+    except Exception as e:
+        print(f"Error fetching credentials: {str(e)}")
+        return jsonify({
+            "error": "Failed to fetch credentials",
+            "details": str(e)
+        }), 500
 
 @email_blueprint.route('/messages/<message_id>')
 def get_message(message_id):
     # Check if user is authenticated
-    if 'google_credentials' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-
-    # Retrieve stored credentials from session
-    creds_data = session['google_credentials']
+    service = get_gmail_service()
     
-    # Create Credentials object
-    credentials = Credentials(
-        token=creds_data['token'],
-        refresh_token=creds_data['refresh_token'],
-        token_uri=creds_data['token_uri'],
-        client_id=creds_data['client_id'],
-        client_secret=creds_data['client_secret'],
-        scopes=creds_data['scopes']
-    )
+    if not service:
+        return jsonify({"error": "Not authenticated"}), 401
 
     # Refresh token if expired
-    if credentials.expired:
-        try:
-            credentials.refresh(Request())
-            # Update session with new token
-            session['google_credentials']['token'] = credentials.token
-        except Exception as e:
-            return jsonify({'error': 'Failed to refresh token', 'details': str(e)}), 401
+    # if credentials.expired:
+    #     try:
+    #         credentials.refresh(Request())
+    #         # Update session with new token
+    #         session['google_credentials']['token'] = credentials.token
+    #     except Exception as e:
+    #         return jsonify({'error': 'Failed to refresh token', 'details': str(e)}), 401
 
     try:
-        # Build Gmail API client
-        service = build('gmail', 'v1', credentials=credentials)
-        
+        # Build Gmail API client        
         # Get message details
         message = service.users().messages().get(
             userId='me',
@@ -265,13 +292,14 @@ def get_message(message_id):
         }), 500
     
 @email_blueprint.route('/setfolders')
-def get_email():
-    email = get_user_email()  # Fetch the email address using Gmail API
-    print(email)
-    if email:
-        return jsonify({'email': email})  # Return the email in a JSON response
-    else:
-        return jsonify({'error': 'Failed to retrieve email'}), 400
+def set_folders():
+    return {"Set Folders": "Not implemented Yet"}
+    # email = get_user_email()  # Fetch the email address using Gmail API
+    # print(email)
+    # if email:
+    #     return jsonify({'email': email})  # Return the email in a JSON response
+    # else:
+    #     return jsonify({'error': 'Failed to retrieve email'}), 400
 
 @email_blueprint.route('/check', methods=['GET'])
 def check():
