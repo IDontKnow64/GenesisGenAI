@@ -43,6 +43,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Mail } from "@/test/data"
+import CircleChart from "@/components/CircleChart"
 
 interface MailDisplayProps {
   mail: Mail | null
@@ -153,7 +154,8 @@ export function MailDisplay({ mail }: MailDisplayProps) {
       </div>
       <Separator />
       {mail ? (
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
           <div className="flex items-start p-4">
             <div className="flex items-start gap-4 text-sm">
               <Avatar>
@@ -180,10 +182,16 @@ export function MailDisplay({ mail }: MailDisplayProps) {
             )}
           </div>
           <Separator />
-          <div className="flex-1 whitespace-pre-wrap p-4 text-sm">
+          <div className="whitespace-pre-wrap p-4 text-sm">
             {mail.text}
           </div>
           <Separator className="mt-auto" />
+          <CircleChart />
+
+          </div>
+
+          <div className="shrink-0">
+          {/* <Separator className="mt-auto" />
           <div className="p-4">
             <form>
               <div className="grid gap-4">
@@ -209,7 +217,8 @@ export function MailDisplay({ mail }: MailDisplayProps) {
                 </div>
               </div>
             </form>
-          </div>
+          </div> */}
+        </div>
         </div>
       ) : (
         <div className="p-8 text-center text-muted-foreground">
