@@ -62,13 +62,13 @@ const LoginPage: FC = () => {
                                     shadow-lg transform hover:scale-105">
                         {isConnected ? "Disconnect" : "Connect"}
                         <span className="inline-flex gap-0.5">
-                    <span style={{ color: "#4285F4" }}>G</span>
-                    <span style={{ color: "#EA4335" }}>o</span>
-                    <span style={{ color: "#FBBC05" }}>o</span>
-                    <span style={{ color: "#4285F4" }}>g</span>
-                    <span style={{ color: "#34A853" }}>l</span>
-                    <span style={{ color: "#EA4335" }}>e</span>
-                    </span>
+                            <span style={{ color: "#4285F4" }}>G</span>
+                            <span style={{ color: "#EA4335" }}>o</span>
+                            <span style={{ color: "#FBBC05" }}>o</span>
+                            <span style={{ color: "#4285F4" }}>g</span>
+                            <span style={{ color: "#34A853" }}>l</span>
+                            <span style={{ color: "#EA4335" }}>e</span>
+                        </span>
                     </Button>
                     <Button onClick={onReturn} className="px-16 py-6 text-white 
                                     transition-colors duration-300
