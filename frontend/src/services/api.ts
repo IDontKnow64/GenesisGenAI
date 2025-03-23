@@ -24,7 +24,7 @@ export const initiateGoogleAuth = async () => {
 export const emailService = {
   checkConnection: async () => {
     try {
-      const response = await apiClient.get('/emails');
+      const response = await apiClient.get('/emails/connected');
       return response.data;
     } catch (error) {
       console.error('Connection check failed:', error);

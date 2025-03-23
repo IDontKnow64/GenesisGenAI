@@ -108,12 +108,10 @@ def fetch_emails(max):
 
 email_blueprint = Blueprint('emails', __name__)
 
-@email_blueprint.route('/')
+@email_blueprint.route('/connected', methods=["GET"])
 def check_email_connection():
-    return {
-        'message': 'Email Connected?',
-        'connected': str("google_credentials" in session) 
-        }
+    credentials = session.get("google_credentials")
+    return {'connected': credentials is not None}
 
 @email_blueprint.route('/address', methods=["GET"])
 def get_email():
