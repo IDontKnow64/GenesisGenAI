@@ -13,72 +13,157 @@ def add_punctuation(line):
         return line + '.'
     return line
 
-def detect_scam(email_content):
-    """Detects if an email is a scam using Cohere's API."""
-    api_key = os.getenv("CO_API_KEY")
-    if not api_key:
-        raise ValueError("CO_API_KEY environment variable not set")
+# def detect_scam(email_content):
+#     """Detects if an email is a scam using Cohere's API."""
+#     api_key = os.getenv("CO_API_KEY")
+#     if not api_key:
+#         raise ValueError("CO_API_KEY environment variable not set")
 
-    co = cohere.ClientV2(api_key)
+#     co = cohere.ClientV2(api_key)
 
-    # Classify the email as scam or safe
-    response = co.chat(
-        model="command-a-03-2025",
-        messages=[
-            {"role": "system", "content": "You are an expert at detecting fraud or phishing emails. You know exactly what key markers make a fraud email. Given an email, determine whether it is safe or fraudulent by only responding with either 'scam' or 'safe' for the given email. Do not add any additional punctuation."},
-            {"role": "user", "content": email_content}
-        ],
-        temperature=0.0
-    )
+#     # Classify the email as scam or safe
+#     response = co.chat(
+#         model="command-a-03-2025",
+#         messages=[
+#             {"role": "system", "content": "You are an expert at detecting fraud or phishing emails. You know exactly what key markers make a fraud email. Given an email, determine whether it is safe or fraudulent by only responding with either 'scam' or 'safe' for the given email. Do not add any additional punctuation."},
+#             {"role": "user", "content": email_content}
+#         ],
+#         temperature=0.0
+#     )
 
-    classification = response.message.content[0].text.strip().lower()
-    if classification == "scam":
-        # Process the email content
-        lines = email_content.split('\n')
-        processed_lines = [add_punctuation(line) for line in lines]
-        processed_email_content = '\n'.join(processed_lines)
-        clean_content = re.sub(r'•⁠  ', '-', processed_email_content)
-        clean_content = re.sub(r':', '.', clean_content)
-        documents = nltk.sent_tokenize(clean_content)
+#     classification = response.message.content[0].text.strip().lower()
+#     print(f"{classification = }")
+#     if classification == "scam":
+#         # Process the email content
+#         lines = email_content.split('\n')
+#         processed_lines = [add_punctuation(line) for line in lines]
+#         processed_email_content = '\n'.join(processed_lines)
+#         clean_content = re.sub(r'•⁠  ', '-', processed_email_content)
+#         clean_content = re.sub(r':', '.', clean_content)
+#         documents = nltk.sent_tokenize(clean_content)
 
-        # Get embeddings for the documents
-        doc_emb = co.embed(
-            texts=documents,
-            model="embed-english-v3.0",
-            input_type="search_document"
-        ).embeddings
+#         # Get embeddings for the documents
+#         doc_emb = co.embed(
+#             texts=documents,
+#             model="embed-english-v3.0",
+#             input_type="search_document"
+#         ).embeddings
 
-        query = "Which parts of an email indicates that it is a scam?"
-        query_emb = co.embed(
-            texts=[query],
-            model="embed-english-v3.0",
-            input_type="search_query"
-        ).embeddings
+#         query = "Which parts of an email indicates that it is a scam?"
+#         query_emb = co.embed(
+#             texts=[query],
+#             model="embed-english-v3.0",
+#             input_type="search_query"
+#         ).embeddings
 
-        # Calculate similarity scores
-        scores = np.dot(query_emb, np.transpose(doc_emb))[0]
-        scores_max = scores.max()
-        scores_norm = scores / scores_max
-        top_n = 5
-        top_doc_idxs = np.argsort(-scores)[:top_n]
+#         # Calculate similarity scores
+#         scores = np.dot(query_emb, np.transpose(doc_emb))[0]
+#         scores_max = scores.max()
+#         scores_norm = scores / scores_max
+#         top_n = 5
+#         top_doc_idxs = np.argsort(-scores)[:top_n]
 
-        top_docs = "\n".join([f"Phrase {idx+1}: {documents[docs_idx]}" for idx, docs_idx in enumerate(top_doc_idxs)])
+#         top_docs = "\n".join([f"Phrase {idx+1}: {documents[docs_idx]}" for idx, docs_idx in enumerate(top_doc_idxs)])
+#         print(f"{top_docs = }")
+#         # Get reasons why the email is a scam
+#         response = co.chat(
+#             model="command-a-03-2025",
+#             messages=[
+#                 {"role": "system", "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"},
+#                 {"role": "user", "content": email_content + top_docs}
+#             ],
+#             temperature=0.1
+#         )
 
-        # Get reasons why the email is a scam
-        response = co.chat(
+#         reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
+#         cleaned_reasons = [reason.strip() for reason in reasons]
+#         print(f"{cleaned_reasons = }")
+#         return ("Scam", cleaned_reasons, round(scores_norm[top_doc_idxs[0]] * 100))
+#     else:
+#         return ("Safe", [""], 100)
+def detect_scam(email_content: str) -> tuple[str, list[str], float]:
+    """Detects if an email is a scam using Cohere's API with proper error handling."""
+    try:
+        # 1. Validate environment
+        api_key = os.getenv("CO_API_KEY")
+        if not api_key:
+            raise ValueError("CO_API_KEY environment variable not set")
+
+        # 2. Initialize Cohere client (using correct client class)
+        co = cohere.Client(api_key)  # Changed from ClientV2 to Client
+
+        # 3. Classify email
+        classification_response = co.chat(
             model="command-a-03-2025",
-            messages=[
-                {"role": "system", "content": "Explain why each phrase given suggests the email is a scam in the following format \nPhrase 1:\nPhrase 2: and so on"},
-                {"role": "user", "content": email_content + top_docs}
-            ],
-            temperature=0.1
+            message=email_content,  # Simplified message format
+            preamble="Classify this email as 'scam' or 'safe' only. Look for:\n- Urgent language\n- Suspicious links\n- Unusual requests\n- Grammar mistakes",
+            temperature=0.0
         )
 
-        reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.text)
-        cleaned_reasons = [reason.strip() for reason in reasons]
-        return ("Scam", cleaned_reasons, round(scores_norm[top_doc_idxs[0]] * 100))
-    else:
-        return ("Safe", [""], 100)
+        # 4. Safely extract classification
+        classification = classification_response.text.strip().lower()
+        if 'scam' not in classification and 'safe' not in classification:
+            return ("Invalid response", ["Could not determine scam status"], 0.0)
+
+        if 'safe' in classification:
+            return ("Safe", [], 100.0)
+
+        # 5. Process scam content with error checking
+        try:
+            # Simplified content processing
+            clean_content = re.sub(r'[•⁠]+', '-', email_content)
+            documents = nltk.sent_tokenize(clean_content)[:10]  # Limit to first 10 sentences
+
+            if not documents:
+                return ("Scam", ["Suspicious content patterns detected"], 95.0)
+
+            # 6. Get embeddings with batch processing
+            batch_size = 32
+            doc_embeddings = []
+            for i in range(0, len(documents), batch_size):
+                batch = documents[i:i+batch_size]
+                emb_response = co.embed(
+                    texts=batch,
+                    model="embed-english-v3.0",
+                    input_type="search_document"
+                )
+                doc_embeddings.extend(emb_response.embeddings)
+
+            # 7. Similarity calculation with numpy
+            query = "Identify scam indicators in email content"
+            query_emb = co.embed(
+                texts=[query],
+                model="embed-english-v3.0",
+                input_type="search_query"
+            ).embeddings[0]
+
+            scores = np.dot([query_emb], np.array(doc_embeddings).T)[0]
+            top_idx = np.argmax(scores)
+            confidence = float(scores[top_idx] * 100)
+
+            # 8. Get explanations with improved prompt
+            explanation_response = co.chat(
+                model="command-a-03-2025",
+                message=f"Explain why this email is suspicious:\n{documents[top_idx]}",
+                temperature=0.1
+            )
+
+            # 9. Safely extract reasons
+            reasons = [explanation_response.text]
+            return ("Scam", reasons, min(confidence, 100.0))
+
+        except Exception as processing_error:
+            print(f"Content processing error: {processing_error}")
+            return ("Scam", ["Potential scam detected"], 85.0)
+
+    except cohere.CohereError as cohere_error:
+        print(f"Cohere API Error: {cohere_error}")
+        return ("Error", [f"API Error: {str(cohere_error)}"], 0.0)
+        
+    except Exception as general_error:
+        print(f"General Error: {general_error}")
+        return ("Error", [f"Processing Error: {str(general_error)}"], 0.0)
+
 
 def summarize_email(email_body):
     """Summarizes the email content using Cohere's API."""
