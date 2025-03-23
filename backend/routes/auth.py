@@ -22,7 +22,6 @@ def get_flow():
     )
 auth_blueprint = Blueprint('auth', __name__)
 
-
 @auth_blueprint.route('/login')
 def login():
     # Handle login logic
