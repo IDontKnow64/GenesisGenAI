@@ -3,6 +3,10 @@ import numpy as np
 import re
 import nltk
 
+api_key = os.getenv("CO_API_KEY")
+
+co = cohere.ClientV2(api_key)
+
 def add_punctuation(line):
     # Strip extra spaces at the start and end of the line
     line = line.strip()
@@ -11,9 +15,6 @@ def add_punctuation(line):
     return line
 
 def detect_scam(email_content):
-    api_key = os.getenv("CO_API_KEY")
-
-    co = cohere.ClientV2(api_key)
 
     # Universal naming scheme
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -94,7 +95,51 @@ def detect_scam(email_content):
         #print (response.message.content[0].text)
         reasons = re.findall(r'\*\*Reason:\*\*(.*?)\n', response.message.content[0].text)
         cleaned_reasons = [reason.strip() for reason in reasons]
-        return ["Scam", cleaned_reasons, score]
+        return ["Scam", cleaned_reasons, round(originalScore)]
     else:
         return ["Safe", "Reasons", 100] 
-    
+
+
+def summarize_email(email_body):
+    """
+    Summarizes the email content to focus on key points.
+    :param email_body: The text content of the email.
+    :return: A summarized version of the email.
+    """
+    try:
+        response = co.summarize(
+            model="command-r",
+            text=email_body,
+            length="short",
+            format="paragraph"
+        )
+        return response.summary  # Return summarized email
+    except Exception as e:
+        print(f"Error summarizing email: {e}")
+        return email_body  # Fall back to full email if summarization fails
+
+def classify_email(email_body, descriptions):
+    """
+    Uses AI to classify a summarized email into one of the given folder descriptions.
+
+    :param email_body: The text content of the email.
+    :param descriptions: A dictionary where keys are classification labels and values are folder descriptions.
+    :return: The most relevant classification label.
+    """
+    summary = summarize_email(email_body)  # Summarize email before classification
+    labels = list(descriptions.keys())  # Extract classification labels
+
+    try:
+        response = co.classify(
+            model="embed-english-v3.0",
+            inputs=[summary],  # Use summarized email instead of full body
+            examples=[(desc, label) for label, desc in descriptions.items()],
+        )
+
+        if response.classifications:
+            return response.classifications[0].prediction  # Return the best-matching label
+
+    except Exception as e:
+        print(f"Error classifying email: {e}")
+
+    return "Uncategorized"  # Default if classification fails
