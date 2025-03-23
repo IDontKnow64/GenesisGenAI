@@ -294,7 +294,7 @@ def summarize(message_id):
 @email_blueprint.route('/measure/<message_id>', methods=['GET'])
 def measure(message_id):
     service = get_gmail_service()
-
+    print(f"{service = }")
     # Check authentication
     if service is None:
         return jsonify({"error": "Authentication required"}), 401
@@ -306,17 +306,19 @@ def measure(message_id):
             id=message_id,
             format='full'
         ).execute()
+        print(f"{message = }")
     except Exception as e:
         return jsonify({"error": f"Gmail API Error: {e}"}), 500
 
     # Extract structured email data using helper
     email = extract_email_details(message, message_id)
-    
+    print(f"{email = }")
     # Generate summary and prepare response
     try:
         type, reasons, score = chd.detect_scam(email['Body'])  # Call the updated function
+        print(type, reasons, score)
     except Exception as e:
-        return jsonify({"error": f"Summary generation failed: {e}"}), 500
+        return jsonify({"error": f"Summary generation failed: {e}"}), 520
 
     return jsonify({
         "email": email,

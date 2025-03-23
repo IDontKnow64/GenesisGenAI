@@ -3,6 +3,7 @@
 import * as React from "react"
 import { TrendingUp } from "lucide-react"
 import { Label, Pie, PieChart } from "recharts"
+import { useState } from "react"
 
 import {
   Card,
@@ -19,9 +20,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { Button } from "./ui/button"
-const chartData = [
-  { level: "safety", visitors: 100, fill: "green" },
-]
+
 
 const chartConfig = {
   visitors: {
@@ -34,9 +33,12 @@ const chartConfig = {
 } satisfies ChartConfig
 
 const CircleChart = ({msg_id, description, type, reasons, score}) => {
-  const totalVisitors = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0)
-  }, [])
+  const startData = [
+    { level: "safety", score: 0, fill: "green" },
+    { level: "danger", score: 0, fill: "red" },
+    { level: "unknown", score: 100, fill: "gray" },
+  ]
+  const [data, setData] = useState(startData)
 
   return (
     <Card className="flex flex-col">
@@ -56,8 +58,8 @@ const CircleChart = ({msg_id, description, type, reasons, score}) => {
             />
             <Pie
               data={chartData}
-              dataKey="visitors"
-              nameKey="browser"
+              dataKey="score"
+              nameKey="level"
               innerRadius={60}
               strokeWidth={5}
             >
