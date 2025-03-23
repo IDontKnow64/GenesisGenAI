@@ -8,7 +8,9 @@ const apiClient = axios.create({
 
 export const initiateGoogleAuth = async () => {
   try {
+    console.log('/api/auth/login')
     window.location.href = '/api/auth/login';
+
     // const response = await apiClient.get('/auth/login');
     
     // Redirect user to Google's OAuth page
