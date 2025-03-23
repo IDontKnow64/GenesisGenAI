@@ -89,6 +89,22 @@ export function Mail({
     }
   };
 
+  const addFolder = () => {
+    const newFolder = {
+      title: "New Folder",
+      label: "",
+      icon: lu.LuFolderOpen as LucideIcon,
+      category: "All",
+      variant: "ghost",
+    };
+    setFolders([...folders, newFolder]);
+  };
+
+  const addCategory = () => {
+    const newCategory = "New Category";
+    setCategories([...categories, newCategory]);
+  };
+
   return (
     <TooltipProvider delayDuration={0}>
       <ResizablePanelGroup
@@ -119,25 +135,30 @@ export function Mail({
             )}`;
           }}
           className={cn(
-            isCollapsed &&
-              "min-w-[50px] transition-all duration-300 ease-in-out"
+            "flex flex-col justify-between min-w-[50px] transition-all duration-300 ease-in-out"
           )}
         >
+          <div>
           <div className="pt-[28px]"/>
           {categories.map((category) => (
             <div className="category-item">
               <span className="pr-3 flex justify-between">
-                <text className="pl-5 category-title">{category}</text>
+                <text className="pl-5 category-title">{isCollapsed ? "" : category}</text>
                 <span className="flex gap-0">
-                <Button onClick={() => moveDown(category)} className="size-1 bg-white shadow-none hover:bg-gray-100">
-                  <lu.LuArrowDown color="black"/>
-                </Button>
-                <Button onClick={() => moveUp(category)} className="size-1 bg-white shadow-none hover:bg-gray-100">
-                <lu.LuArrowUp color="black"/>
-                </Button>
+                {!isCollapsed && (
+                  <div>
+                    <Button onClick={() => moveDown(category)} className="size-1 bg-white shadow-none hover:bg-gray-100">
+                      <lu.LuArrowDown color="black"/>
+                    </Button>
+                    <Button onClick={() => moveUp(category)} className="size-1 bg-white shadow-none hover:bg-gray-100">
+                      <lu.LuArrowUp color="black"/>
+                    </Button>
+                  </div>
+                )}
                 </span>
               </span>
               <Separator />
+              
               <Nav
                 isCollapsed={isCollapsed}
                 links={folders.map((folder) => ({
@@ -148,19 +169,13 @@ export function Mail({
                   category: folder.category,
                 })).filter((folder) => folder.category === category)}
               />
+
             </div>
           ))}
-          {/* <Nav
-            isCollapsed={isCollapsed}
-            links={[
-              {
-                title: "Social",
-                label: "HAHA",
-                icon: Users2,
-                variant: "ghost",
-              },
-            ]}
-          /> */}
+          </div>
+          <div className="px-2">
+            <Button onClick={addFolder} variant={"secondary"} className= {`text-black  shadow-none hover:bg-gray-200 bottom-10 ${isCollapsed ? "size-9" : "w-full"}`}>{!isCollapsed ? "add folder" : <lu.LuPlus/>}</Button>
+          </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>
