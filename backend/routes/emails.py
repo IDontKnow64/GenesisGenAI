@@ -128,7 +128,8 @@ def get_email():
 @email_blueprint.route('/raw', methods=["GET"])
 def get_raw_email():
     """Fetch the user's email using the Gmail API service."""
-    emails = fetch_emails(10)
+    max_emails = request.args.get('max', default=10, type=int)
+    emails = fetch_emails(max_emails)
     if isinstance(emails, str):  # If fetch_emails() returned an error string
         return jsonify({"error": emails}), 500
 
