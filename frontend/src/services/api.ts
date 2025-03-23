@@ -24,7 +24,7 @@ export const initiateGoogleAuth = async () => {
 export const emailService = {
   checkConnection: async () => {
     try {
-      const response = await apiClient.get('/emails');
+      const response = await apiClient.get('/emails/connected');
       return response.data;
     } catch (error) {
       console.error('Connection check failed:', error);
@@ -84,7 +84,7 @@ export const emailService = {
     }
   },
 
-  getRawEmails: async (maxEmails = 10) => {
+  getRawEmails: async (maxEmails) => {
     try {
       const response = await apiClient.get('/emails/raw', {
         params: { max: maxEmails }
@@ -105,7 +105,7 @@ export const emailService = {
           subject: email.Subject,
           text: email.Body,
           date: new Date(email['Date Received']).toISOString(),
-          read: false, // Default to unread
+          read: true, // Default to unread
           labels: [] // Initialize empty labels array
         };
       });
