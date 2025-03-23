@@ -7,6 +7,7 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from base64 import urlsafe_b64decode
 from dotenv import load_dotenv
+from sql import *
 from utils import cohere_detection as chd
 
 load_dotenv()
@@ -195,15 +196,21 @@ def get_message(message_id):
             'details': str(e)
         }), 500
     
-@email_blueprint.route('/setfolders')
-def set_folders():
-    return {"Set Folders": "Not implemented Yet"}
-    # email = get_user_email()  # Fetch the email address using Gmail API
-    # print(email)
-    # if email:
-    #     return jsonify({'email': email})  # Return the email in a JSON response
-    # else:
-    #     return jsonify({'error': 'Failed to retrieve email'}), 400
+@email_blueprint.route('/setfolders', methods=["GET", "POST"])
+def get_email():
+    email = get_user_email()  # Fetch the email address using Gmail API
+    db = SQL("sqlite:///users.db")
+
+    user = db.execute("SELECT * FROM users WHERE emailaddress = :emailaddress", emailaddress=email)
+
+    if len(user) == 0:
+        db.execute("INSERT INTO users (emailaddress) VALUES (:emailaddress)", emailaddress=email)
+        db.commit()
+
+    if email:
+        return jsonify({'email': email})  # Return the email in a JSON response
+    else:
+        return jsonify({'error': 'Failed to retrieve email'}), 400
 
 @email_blueprint.route('/check', methods=['GET'])
 def check():
