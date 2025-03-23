@@ -84,6 +84,16 @@ export const emailService = {
     }
   },
 
+  getSummary: async () => {
+    try {
+      const response = await apiClient.get('/emails/summary');
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get email summary:', error);
+      throw error;
+    }
+  },
+
   getRawEmails: async (maxEmails) => {
     try {
       const response = await apiClient.get('/emails/raw', {
