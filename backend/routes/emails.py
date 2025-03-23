@@ -175,27 +175,59 @@ def set_email_db():
     else:
         return jsonify({'error': 'Failed to retrieve email'}), 400
 
+@email_blueprint.route('/createfolder', methods=["GET", "POST"])
+def createFolder():
+    email = get_user_email()  # Fetch the email address using Gmail API
+    folder_name = request.form.get('folder_name')  # Assume the folder name is passed in the form
+    folder_description = request.form.get('folder_description')  # Assume the description is passed as well
+    db = SQL("sqlite:///users.db")
+
+    # Check if the user exists in the database
+    user = db.execute("SELECT * FROM users WHERE emailaddress = :emailaddress", emailaddress=email)
+
+    if len(user) == 0:
+        # If the user doesn't exist, create a new user record
+        db.execute("INSERT INTO users (emailaddress, folder, description) VALUES (:emailaddress, :folder_name, :folder_description)",
+                   emailaddress=email, folder_name=folder_name, folder_description=folder_description)
+        db.commit()
+    else:
+        # If the user exists, check if the folder already exists
+        existing_folders = db.execute("SELECT folder FROM users WHERE emailaddress = :emailaddress", emailaddress=email)
+        existing_folder_names = [folder['folder'] for folder in existing_folders]
+
+        if folder_name not in existing_folder_names:
+            # If the folder doesn't exist, add the new folder for the user
+            db.execute("INSERT INTO users (emailaddress, folder, description) VALUES (:emailaddress, :folder_name, :folder_description)",
+                       emailaddress=email, folder_name=folder_name, folder_description=folder_description)
+            db.commit()
+        else:
+            # Optionally, you can update the folder description if the folder already exists
+            db.execute("UPDATE users SET description = :folder_description WHERE emailaddress = :emailaddress AND folder = :folder_name",
+                       emailaddress=email, folder_name=folder_name, folder_description=folder_description)
+            db.commit()
+
+    return jsonify({"message": "Folder created/updated successfully"})
+
 @email_blueprint.route('/sortintofolders', methods=["GET", "POST"])
 def sortintofolders():
+    email = get_user_email()  # Fetch the email address using Gmail API
     emails = fetch_emails(10)  # Fetch emails
 
-    descriptions = {
-        "Work": "Emails related to job, tasks, meetings, and projects.",
-        "Personal": "Conversations with friends and family.",
-        "Promotions": "Marketing, sales, and discount emails."
-    }
-
-    folders = {
-        "Work": "Work Emails",
-        "Personal": "Personal Emails",
-        "Promotions": "Promotions",
-        "Uncategorized": "Uncategorized"
-    }
-
+    # Fetch user folders from the database based on email address
+    db = SQL("sqlite:///users.db")
+    folders_data = db.execute("SELECT folder, description FROM users WHERE emailaddress = :emailaddress", emailaddress=email)
+    
     if isinstance(emails, str):  # If fetch_emails() returned an error string
         return jsonify({"error": emails}), 500
 
-    categorized_emails = sort_into_folders(folders, descriptions, emails)  # Calls classify_email internally
+    # Prepare the folders dictionary based on the data fetched
+    folders = {folder['folder']: folder['description'] for folder in folders_data}
+    
+    # Default folder for uncategorized emails
+    if "Uncategorized" not in folders:
+        folders["Uncategorized"] = "Emails that could not be categorized."
+
+    categorized_emails = sort_into_folders(folder, folders, emails)  # Calls classify_email internally
     return jsonify(categorized_emails)
 
 @email_blueprint.route('/check', methods=['GET'])
