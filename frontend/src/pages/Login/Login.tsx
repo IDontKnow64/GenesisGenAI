@@ -14,9 +14,9 @@ const LoginPage: FC = () => {
             alert('Failed to start Google authentication');
         }
     }
-    const onConnectOutlook = () => {
-        setCounter(counter + 10);
-    }
+    // const onConnectOutlook = () => {
+    //     setCounter(counter + 10);
+    // }
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-15">
@@ -31,12 +31,6 @@ const LoginPage: FC = () => {
                                     shadow-lg transform hover:scale-105">
                         Connect Google
                     </Button>
-                    <Button onClick={onConnectOutlook} className="px-8 py-3 text-white 
-                                    transition-colors duration-300
-                                    shadow-lg transform hover:scale-105">
-                        Connect Outlook
-                    </Button>
-                    
                 </div>
                 <div className="text-3xl font-mono text-gray-600 mt-4">
                     Counter: {counter}
