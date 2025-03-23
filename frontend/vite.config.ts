@@ -40,7 +40,6 @@ export default defineConfig({
     },
   },
   server: {
-    hmr: false,
     proxy: {
       '/api': {                          // Prefix for frontend requests
         target: 'http://127.0.0.1:5000', // Your backend URL
