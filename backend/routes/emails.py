@@ -117,7 +117,7 @@ def fetch_emails(max):
         return email_list
 
     except Exception as e:
-        return f"❌ Error fetching emails: {str(e)}"
+        return f"Error fetching emails: {str(e)}"
 
 def sort_into_folders(folders, descriptions, emails):
     """Sort emails into folders based on AI classification using descriptions."""
