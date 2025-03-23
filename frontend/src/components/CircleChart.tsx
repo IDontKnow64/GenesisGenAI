@@ -18,6 +18,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { Button } from "./ui/button"
 const chartData = [
   { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
   { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
@@ -52,7 +53,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export default function CircleChart() {
+const CircleChart = ({msg_id}) => {
   const totalVisitors = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.visitors, 0)
   }, [])
@@ -120,7 +121,12 @@ export default function CircleChart() {
         <div className="leading-none text-muted-foreground">
           Showing total visitors for the last 6 months
         </div>
+        <Button >
+
+        </Button>
       </CardFooter>
     </Card>
   )
 }
+
+export default CircleChart;
