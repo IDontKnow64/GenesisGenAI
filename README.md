@@ -1,4 +1,4 @@
-# GenesisGenAI
+# ArmourInbox
 
 Resources:
 React + Vite Chrome extension:
