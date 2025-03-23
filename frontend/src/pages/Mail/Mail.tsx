@@ -47,7 +47,6 @@ const MailPage = () => {
 
   return (
     <>
-      done
       <div className="hidden flex-col md:flex">
         <Mail
           accounts={accounts}
