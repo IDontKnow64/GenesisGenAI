@@ -32,7 +32,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-const CircleChart = ({msg_id, description, type, reasons, score}) => {
+const CircleChart = ({msg_id, description, type, reasons,score}) => {
   const chartData = [
     { level: "safety", score: score, fill: "green" },
     { level: "danger", score: 100-score, fill: "red" },
