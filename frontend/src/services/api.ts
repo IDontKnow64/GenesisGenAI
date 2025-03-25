@@ -107,11 +107,12 @@ export const emailService = {
 
   scanEmail: async (messageId: string) => {
     try {
+      console.log("recieved")
       const response = await apiClient.get(`/emails/measure/${messageId}`);
-      console.log(response.data)
+      console.log("recieved")
       return response.data;
     } catch (error) {
-      console.error('Failed to summarize email:', error);
+      console.error('Failed to scan email:', error);
       throw error;
     }
   },

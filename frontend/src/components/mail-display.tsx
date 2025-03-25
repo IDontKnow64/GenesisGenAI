@@ -92,7 +92,10 @@ export function MailDisplay({ mail }: MailDisplayProps) {
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button onClick={() => summarizeCurrent(mail?.id)} variant="outline" disabled={!mail}>
+            <Button 
+              onClick={() => summarizeCurrent(mail?.id)} 
+              variant="outline" 
+              disabled={!mail}>
               Summarize!
             </Button>
           </TooltipTrigger>
@@ -100,7 +103,10 @@ export function MailDisplay({ mail }: MailDisplayProps) {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button onClick={() => measureScam(mail?.id)} variant="outline" disabled={!mail}>
+            <Button 
+              onClick={() => mail?.id && measureScam(mail.id)} 
+              variant="outline"
+              disabled={!mail}>
               Scan!
             </Button>
           </TooltipTrigger>
