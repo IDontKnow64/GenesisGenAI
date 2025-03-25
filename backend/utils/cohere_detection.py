@@ -90,24 +90,35 @@ def detect_scam(email_content: str) -> tuple[str, list[str], float]:
             raise ValueError("CO_API_KEY environment variable not set")
 
         # 2. Initialize Cohere client (using correct client class)
-        co = cohere.Client(api_key)  # Changed from ClientV2 to Client
+        co = cohere.ClientV2(api_key) 
 
         # 3. Classify email
         classification_response = co.chat(
             model="command-a-03-2025",
-            message=email_content,  # Simplified message format
-            preamble="Classify this email as 'scam' or 'safe' only. Look for:\n- Urgent language\n- Suspicious links\n- Unusual requests\n- Grammar mistakes",
-            temperature=0.0
+            messages=[
+                    {  
+                        "role": "system",
+                        "content": "You respond with only either 'scam' or 'safe' for the given email and then you respond with only a number that gives a scam rating from 0 (safe) to 100 (guaranteened scam)"
+                    },
+                    {
+                    "role": "user",
+                    "content": email_content,
+                    }
+                ],
+            temperature = 0.0
         )
 
         # 4. Safely extract classification
-        classification = classification_response.text.strip().lower()
+        classification = classification_response.message.content[0].text.split()[0]
+        
+        scam_score = float(classification_response.message.content[0].text.split()[1])
+        
         if 'scam' not in classification and 'safe' not in classification:
             return ("Invalid response", ["Could not determine scam status"], 0.0)
 
         if 'safe' in classification:
-            return ("Safe", [], 100.0)
-
+            return ("Safe", ["Safe"], 100-scam_score)
+        
         # 5. Process scam content with error checking
         try:
             # Simplified content processing
@@ -118,39 +129,39 @@ def detect_scam(email_content: str) -> tuple[str, list[str], float]:
                 return ("Scam", ["Suspicious content patterns detected"], 95.0)
 
             # 6. Get embeddings with batch processing
-            batch_size = 32
-            doc_embeddings = []
-            for i in range(0, len(documents), batch_size):
-                batch = documents[i:i+batch_size]
-                emb_response = co.embed(
-                    texts=batch,
-                    model="embed-english-v3.0",
-                    input_type="search_document"
-                )
-                doc_embeddings.extend(emb_response.embeddings)
+            doc_embeddings = co.embed(
+                texts=documents,
+                model="embed-english-v3.0",
+                input_type="search_document",
+                embedding_types=["float"],
+            ).embeddings.float
 
             # 7. Similarity calculation with numpy
             query = "Identify scam indicators in email content"
             query_emb = co.embed(
                 texts=[query],
                 model="embed-english-v3.0",
-                input_type="search_query"
-            ).embeddings[0]
+                input_type="search_query",
+                embedding_types=["float"],
+            ).embeddings.float
 
-            scores = np.dot([query_emb], np.array(doc_embeddings).T)[0]
+            scores = np.dot(query_emb, np.transpose(doc_embeddings))[0]
             top_idx = np.argmax(scores)
-            confidence = float(scores[top_idx] * 100)
-
+            
             # 8. Get explanations with improved prompt
             explanation_response = co.chat(
                 model="command-a-03-2025",
-                message=f"Explain why this email is suspicious:\n{documents[top_idx]}",
+                messages=[{
+                    "role": "user",
+                    "content": "Explain why this email is suspicious:\n" + documents[top_idx],
+                    }],
                 temperature=0.1
             )
 
             # 9. Safely extract reasons
-            reasons = [explanation_response.text]
-            return ("Scam", reasons, min(confidence, 100.0))
+            reasons = [explanation_response.message.content[0].text]
+
+            return ("Scam", reasons, 100-scam_score)
 
         except Exception as processing_error:
             print(f"Content processing error: {processing_error}")
@@ -171,7 +182,7 @@ def summarize_email(email_body):
     if not api_key:
         raise ValueError("CO_API_KEY environment variable not set")
 
-    co = cohere.Client(api_key)
+    co = cohere.ClientV2(api_key)
     try:
         response = co.summarize(
             model="command-r",
