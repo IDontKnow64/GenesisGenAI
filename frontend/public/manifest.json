@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "Email Scam Detector (NEEDS REVIEW)",
+    "version": "1.0",
+    "permissions": ["activeTab", "storage"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://mail.google.com/*"],
+        "js": ["content.js"]
+      }
+    ],
+    "action": {
+      "default_popup": "index.html"
+    }
+  }
+  
